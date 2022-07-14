@@ -13,6 +13,7 @@
 #include "../../utils/cuda_wrappers.hpp"
 #include "../../utils/get_device_name.hpp"
 #include "../../utils/select_device.hpp"
+#include "alignment_check.hpp"
 #include "vecmem/utils/debug.hpp"
 
 // CUDA include(s).
@@ -27,7 +28,11 @@ device_memory_resource::device_memory_resource(int device)
                      details::get_device_name(m_device).c_str());
 }
 
-void *device_memory_resource::do_allocate(std::size_t bytes, std::size_t) {
+void *device_memory_resource::do_allocate(std::size_t bytes,
+                                          std::size_t alignment) {
+
+    // Check that the requested alignment could be fulfilled.
+    details::alignment_check(alignment);
 
     // Make sure that we would use the appropriate device.
     details::select_device dev(m_device);
@@ -35,8 +40,9 @@ void *device_memory_resource::do_allocate(std::size_t bytes, std::size_t) {
     // Allocate the memory.
     void *res = nullptr;
     VECMEM_CUDA_ERROR_CHECK(cudaMalloc(&res, bytes));
-    VECMEM_DEBUG_MSG(4, "Allocated %ld bytes at %p on device %i", bytes, res,
-                     m_device);
+    VECMEM_DEBUG_MSG(
+        4, "Allocated %ld bytes of (%ld aligned) device memory on \"%i\" at %p",
+        bytes, alignment, m_device, res);
     return res;
 }
 

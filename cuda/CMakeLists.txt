@@ -22,6 +22,7 @@ vecmem_add_library( vecmem_cuda cuda
    "src/memory/cuda/host_memory_resource.cpp"
    "include/vecmem/memory/cuda/managed_memory_resource.hpp"
    "src/memory/cuda/managed_memory_resource.cpp"
+   "src/memory/cuda/alignment_check.hpp"
    # Utilities.
    "include/vecmem/utils/cuda/copy.hpp"
    "src/utils/cuda/copy.cpp"
