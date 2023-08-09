@@ -52,10 +52,13 @@ function( vecmem_add_library fullname basename )
    set_target_properties( ${fullname} PROPERTIES EXPORT_NAME ${basename} )
    add_library( vecmem::${basename} ALIAS ${fullname} )
 
-   # Specify the (SO)VERSION of the library.
-   set_target_properties( ${fullname} PROPERTIES
-      VERSION ${PROJECT_VERSION}
-      SOVERSION ${PROJECT_VERSION_MAJOR} )
+   # Specify the (SO)VERSION of the library. Don't set them on Windows, as the
+   # SYCL library building code does not work with it in CMake >=3.27.
+   if( NOT WIN32 )
+      set_target_properties( ${fullname} PROPERTIES
+         VERSION ${PROJECT_VERSION}
+         SOVERSION ${PROJECT_VERSION_MAJOR} )
+   endif()
 
    # Set up the installation of the library and its headers.
    install( TARGETS ${fullname}
