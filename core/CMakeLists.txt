@@ -123,7 +123,7 @@ target_compile_options( vecmem_core PUBLIC
    $<$<AND:$<CXX_COMPILER_ID:MSVC>,$<COMPILE_LANGUAGE:CXX>>:/Zc:__cplusplus>
    $<$<AND:$<CXX_COMPILER_ID:MSVC>,$<COMPILE_LANGUAGE:CUDA>>:-Xcompiler /Zc:__cplusplus> )
 
-# Figure out where to get <memory_resource> from.
+# Make sure that <memory_resource> is available, and usable.
 include( CheckCXXSourceCompiles )
 check_cxx_source_compiles( "
    #include <memory_resource>
@@ -133,44 +133,21 @@ check_cxx_source_compiles( "
        return 0;
    }
    " VECMEM_HAVE_PMR_MEMORY_RESOURCE )
-   set(pmr_include "memory_resource")
-   set(pmr_ns "std::pmr")
-if( VECMEM_HAVE_PMR_MEMORY_RESOURCE )
-   message( STATUS "Using memory resource types from the std::pmr namespace" )
-   target_compile_definitions( vecmem_core PUBLIC
-      VECMEM_HAVE_PMR_MEMORY_RESOURCE )
-else()
-   check_cxx_source_compiles( "
-      #include <experimental/memory_resource>
-      int main() {
-          std::experimental::pmr::memory_resource* mr = nullptr;
-          std::experimental::pmr::polymorphic_allocator<int> pa(mr);
-          return 0;
-      }
-      " VECMEM_HAVE_EXPERIMENTAL_PMR_MEMORY_RESOURCE )
-   if( VECMEM_HAVE_EXPERIMENTAL_PMR_MEMORY_RESOURCE )
-      message( STATUS "Using memory resource types from the "
-         "std::experimental::pmr namespace" )
-      target_compile_definitions( vecmem_core PUBLIC
-         VECMEM_HAVE_EXPERIMENTAL_PMR_MEMORY_RESOURCE )
-
-      set(pmr_include "experimental/memory_resource")
-      set(pmr_ns "std::experimental::pmr")
-   else()
-      message( SEND_ERROR
-         "C++17 LFTS V1 (P0220R1) component memory_resource not found!" )
-   endif()
+if( NOT VECMEM_HAVE_PMR_MEMORY_RESOURCE )
+   message( SEND_ERROR
+      "C++17 LFTS V1 (P0220R1) component memory_resource not found!" )
 endif()
 
+# Check whether the default resource handling functions are available. Provide
+# an implementation for them, if they are not.
 check_cxx_source_compiles( "
-   #include <${pmr_include}>
+   #include <memory_resource>
    int main() {
-         ${pmr_ns}::set_default_resource(nullptr);
-         (void)${pmr_ns}::get_default_resource();
+         std::pmr::set_default_resource(nullptr);
+         (void)std::pmr::get_default_resource();
          return 0;
    }
   " VECMEM_HAVE_DEFAULT_RESOURCE)
-
 if(NOT VECMEM_HAVE_DEFAULT_RESOURCE)
    target_sources( vecmem_core
       PRIVATE "src/memory/default_resource_polyfill.cpp" )
@@ -238,6 +215,10 @@ if( VECMEM_HAVE_BUILTIN_CLZL )
       vecmem_core
       PRIVATE VECMEM_HAVE_BUILTIN_CLZL
    )
+endif()
+
+if( ( NOT VECMEM_HAVE_LZCNT_U64 ) AND ( NOT VECMEM_HAVE_BUILTIN_CLZL ) )
+   message( SEND_ERROR "No valid clz builtin found." )
 endif()
 
 # Check if std::aligned_alloc is available. With MSVC (at the time of writing)

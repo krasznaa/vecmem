@@ -1,6 +1,6 @@
 /* VecMem project, part of the ACTS project (R&D line)
  *
- * (c) 2021 CERN for the benefit of the ACTS project
+ * (c) 2021-2023 CERN for the benefit of the ACTS project
  *
  * Mozilla Public License Version 2.0
  */
@@ -16,27 +16,13 @@
          "Ideally it should only be used by the \"host compiler\"."
 #endif  // < C++17
 
-/*
- * The purpose of this file is to provide uniform access (on a source-code
- * level) to the polymorphic_allocator type from the standard library. These are
- * either in the std::pmr namespace or in the std::experimental::pmr namespace
- * depending on the GCC version used, so we try to unify them by aliassing
- * depending on the compiler feature flags.
- */
-#if defined(VECMEM_HAVE_PMR_MEMORY_RESOURCE)
+// System include(s).
 #include <memory_resource>
 
 namespace vecmem {
+
+/// Convenience declaration for the polymorphic allocator type.
 template <typename T>
 using polymorphic_allocator = std::pmr::polymorphic_allocator<T>;
-}
-#elif defined(VECMEM_HAVE_EXPERIMENTAL_PMR_MEMORY_RESOURCE)
-#include <experimental/memory_resource>
 
-namespace vecmem {
-template <typename T>
-using polymorphic_allocator = std::experimental::pmr::polymorphic_allocator<T>;
-}
-#else
-#error "C++17 LFTS V1 (P0220R1) component memory_resource not found!?!"
-#endif
+}  // namespace vecmem
