@@ -1,25 +1,25 @@
 /*
  * VecMem project, part of the ACTS project (R&D line)
  *
- * (c) 2021 CERN for the benefit of the ACTS project
+ * (c) 2021-2023 CERN for the benefit of the ACTS project
  *
  * Mozilla Public License Version 2.0
  */
 
-#include "vecmem/memory/choice_memory_resource.hpp"
+// Local include(s).
+#include "choice_memory_resource_impl.hpp"
 
+// System include(s).
 #include <cassert>
-#include <cstddef>
-#include <vector>
 
-#include "vecmem/memory/memory_resource.hpp"
+namespace vecmem::details {
 
-namespace vecmem {
-choice_memory_resource::choice_memory_resource(
+choice_memory_resource_impl::choice_memory_resource_impl(
     std::function<memory_resource &(std::size_t, std::size_t)> decision)
     : m_decision(decision) {}
 
-void *choice_memory_resource::do_allocate(std::size_t size, std::size_t align) {
+void *choice_memory_resource_impl::allocate(std::size_t size,
+                                            std::size_t align) {
 
     if (size == 0) {
         return nullptr;
@@ -39,8 +39,8 @@ void *choice_memory_resource::do_allocate(std::size_t size, std::size_t align) {
     return ptr;
 }
 
-void choice_memory_resource::do_deallocate(void *ptr, std::size_t size,
-                                           std::size_t align) {
+void choice_memory_resource_impl::deallocate(void *ptr, std::size_t size,
+                                             std::size_t align) {
 
     if (ptr == nullptr) {
         return;
@@ -65,4 +65,5 @@ void choice_memory_resource::do_deallocate(void *ptr, std::size_t size,
 
     res.deallocate(nh.key(), size, align);
 }
-}  // namespace vecmem
+
+}  // namespace vecmem::details

@@ -1,23 +1,26 @@
 /*
  * VecMem project, part of the ACTS project (R&D line)
  *
- * (c) 2021 CERN for the benefit of the ACTS project
+ * (c) 2021-2023 CERN for the benefit of the ACTS project
  *
  * Mozilla Public License Version 2.0
  */
 
-#include "vecmem/memory/debug_memory_resource.hpp"
+// Local include(s).
+#include "debug_memory_resource_impl.hpp"
 
+// System include(s).
 #include <sstream>
 #include <stdexcept>
 
-#include "vecmem/memory/memory_resource.hpp"
+namespace vecmem::details {
 
-namespace vecmem {
-debug_memory_resource::debug_memory_resource(memory_resource &upstream)
+debug_memory_resource_impl::debug_memory_resource_impl(
+    memory_resource &upstream)
     : m_upstream(upstream) {}
 
-void *debug_memory_resource::do_allocate(std::size_t size, std::size_t align) {
+void *debug_memory_resource_impl::allocate(std::size_t size,
+                                           std::size_t align) {
 
     if (size == 0) {
         return nullptr;
@@ -63,8 +66,8 @@ void *debug_memory_resource::do_allocate(std::size_t size, std::size_t align) {
     return ptr;
 }
 
-void debug_memory_resource::do_deallocate(void *ptr, std::size_t size,
-                                          std::size_t align) {
+void debug_memory_resource_impl::deallocate(void *ptr, std::size_t size,
+                                            std::size_t align) {
 
     if (ptr == nullptr) {
         return;
@@ -113,4 +116,5 @@ void debug_memory_resource::do_deallocate(void *ptr, std::size_t size,
      */
     m_allocations.erase(alloc_it);
 }
-}  // namespace vecmem
+
+}  // namespace vecmem::details

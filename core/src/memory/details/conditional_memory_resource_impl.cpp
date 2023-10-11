@@ -1,23 +1,23 @@
 /*
  * VecMem project, part of the ACTS project (R&D line)
  *
- * (c) 2021 CERN for the benefit of the ACTS project
+ * (c) 2021-2023 CERN for the benefit of the ACTS project
  *
  * Mozilla Public License Version 2.0
  */
 
-#include "vecmem/memory/conditional_memory_resource.hpp"
+// Local include(s).
+#include "conditional_memory_resource_impl.hpp"
 
-#include "vecmem/memory/memory_resource.hpp"
+namespace vecmem::details {
 
-namespace vecmem {
-conditional_memory_resource::conditional_memory_resource(
+conditional_memory_resource_impl::conditional_memory_resource_impl(
     memory_resource &upstream,
     std::function<bool(std::size_t, std::size_t)> pred)
     : m_upstream(upstream), m_pred(pred) {}
 
-void *conditional_memory_resource::do_allocate(std::size_t size,
-                                               std::size_t align) {
+void *conditional_memory_resource_impl::allocate(std::size_t size,
+                                                 std::size_t align) {
 
     if (size == 0) {
         return nullptr;
@@ -34,8 +34,8 @@ void *conditional_memory_resource::do_allocate(std::size_t size,
     }
 }
 
-void conditional_memory_resource::do_deallocate(void *ptr, std::size_t size,
-                                                std::size_t align) {
+void conditional_memory_resource_impl::deallocate(void *ptr, std::size_t size,
+                                                  std::size_t align) {
 
     if (ptr == nullptr) {
         return;
@@ -48,4 +48,5 @@ void conditional_memory_resource::do_deallocate(void *ptr, std::size_t size,
      */
     m_upstream.deallocate(ptr, size, align);
 }
-}  // namespace vecmem
+
+}  // namespace vecmem::details

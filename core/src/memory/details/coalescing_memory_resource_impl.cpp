@@ -1,26 +1,25 @@
 /*
  * VecMem project, part of the ACTS project (R&D line)
  *
- * (c) 2021 CERN for the benefit of the ACTS project
+ * (c) 2021-2023 CERN for the benefit of the ACTS project
  *
  * Mozilla Public License Version 2.0
  */
 
-#include "vecmem/memory/coalescing_memory_resource.hpp"
+// Local include(s).
+#include "coalescing_memory_resource_impl.hpp"
 
+// System include(s).
 #include <cassert>
-#include <cstddef>
-#include <initializer_list>
 
-#include "vecmem/memory/memory_resource.hpp"
+namespace vecmem::details {
 
-namespace vecmem {
-coalescing_memory_resource::coalescing_memory_resource(
+coalescing_memory_resource_impl::coalescing_memory_resource_impl(
     std::vector<std::reference_wrapper<memory_resource>> &&upstreams)
     : m_upstreams(upstreams) {}
 
-void *coalescing_memory_resource::do_allocate(std::size_t size,
-                                              std::size_t align) {
+void *coalescing_memory_resource_impl::allocate(std::size_t size,
+                                                std::size_t align) {
 
     if (size == 0) {
         return nullptr;
@@ -54,8 +53,8 @@ void *coalescing_memory_resource::do_allocate(std::size_t size,
     throw std::bad_alloc();
 }
 
-void coalescing_memory_resource::do_deallocate(void *ptr, std::size_t size,
-                                               std::size_t align) {
+void coalescing_memory_resource_impl::deallocate(void *ptr, std::size_t size,
+                                                 std::size_t align) {
 
     if (ptr == nullptr) {
         return;
@@ -80,4 +79,5 @@ void coalescing_memory_resource::do_deallocate(void *ptr, std::size_t size,
 
     res.deallocate(nh.key(), size, align);
 }
-}  // namespace vecmem
+
+}  // namespace vecmem::details
