@@ -22,4 +22,5 @@ vecmem_add_test( core
    "test_core_debug_memory_resource.cpp"
    "test_core_unique_alloc_ptr.cpp"
    "test_core_unique_obj_ptr.cpp"
+   "test_core_edm.cpp"
    LINK_LIBRARIES vecmem::core GTest::gtest_main vecmem_testing_common )
