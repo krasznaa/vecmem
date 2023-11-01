@@ -11,7 +11,6 @@
 #include "vecmem/edm/details/buffer_traits.hpp"
 
 // System include(s).
-#include <iostream>
 #include <stdexcept>
 #include <tuple>
 
@@ -25,26 +24,44 @@ buffer<schema<VARTYPES...>>::buffer(size_type capacity, memory_resource& mr,
     // Remember the capacity of the individual variables.
     view_type::m_capacity = capacity;
 
-    // Temporary pointers to the individual variables.
-    std::tuple<typename details::view_type<VARTYPES>::pointer_type...> pointers;
-
     // Make the main memory allocation.
     if (type == data::buffer_type::fixed_size) {
+
+        // Return value for the subsequent allocation command.
+        auto alloc_result = std::tuple_cat(
+            std::tie(m_memory),
+            std::tuple<
+                typename details::view_type<VARTYPES>::pointer_type...>{});
+
         // Allocate memory for fixed sized variables.
-        std::tuple_cat(std::tie(m_memory), pointers) =
-            vecmem::details::aligned_multiple_placement<
-                typename details::view_type<VARTYPES>::raw_type...>(
-                mr, details::buffer_alloc<VARTYPES>::size(capacity)...);
+        alloc_result = vecmem::details::aligned_multiple_placement<
+            typename details::view_type<VARTYPES>::raw_type...>(
+            mr, details::buffer_alloc<VARTYPES>::size(capacity)...);
+
+        // Initialize the views from the raw pointers.
         view_type::m_views =
-            details::make_buffer_views<VARTYPES...>(capacity, pointers);
+            details::make_buffer_views<VARTYPES...>(capacity, alloc_result);
+
     } else if (type == data::buffer_type::resizable) {
-        // Allocate memory for resizable variables.
-        std::tuple_cat(std::tie(m_memory, view_type::m_size), pointers) =
-            vecmem::details::aligned_multiple_placement<
-                size_type, typename details::view_type<VARTYPES>::raw_type...>(
-                mr, 1, details::buffer_alloc<VARTYPES>::size(capacity)...);
+
+        // Return value for the subsequent allocation command.
+        auto alloc_result = std::tuple_cat(
+            std::tie(m_memory, view_type::m_size),
+            std::tuple<
+                typename details::view_type<VARTYPES>::pointer_type...>{});
+
+        // Allocate memory for fixed sized variables.
+        alloc_result = vecmem::details::aligned_multiple_placement<
+            size_type, typename details::view_type<VARTYPES>::raw_type...>(
+            mr, 1, details::buffer_alloc<VARTYPES>::size(capacity)...);
+
+        // Initialize the views from the raw pointers.
         view_type::m_views = details::make_buffer_views<VARTYPES...>(
-            capacity, view_type::m_size, pointers);
+            capacity, view_type::m_size, alloc_result);
+
+        // !!!FIXME!!! This will need to be done by vecmem::copy later on.
+        *(view_type::m_size) = 0u;
+
     } else {
         throw std::runtime_error("Unknown buffer type");
     }

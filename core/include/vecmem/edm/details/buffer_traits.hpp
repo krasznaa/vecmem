@@ -9,6 +9,7 @@
 // Local include(s).
 #include "vecmem/edm/details/view_traits.hpp"
 #include "vecmem/edm/schema.hpp"
+#include "vecmem/memory/unique_ptr.hpp"
 
 // System include(s).
 #include <tuple>
@@ -77,38 +78,41 @@ struct buffer_alloc<type::jagged_vector<TYPE> > {};  // struct buffer_alloc
 template <typename... TYPES, std::size_t... I>
 auto make_buffer_views_impl(
     std::size_t size,
-    std::tuple<typename view_type<TYPES>::pointer_type...>& ptrs,
+    std::tuple<unique_alloc_ptr<char[]>&,
+               typename view_type<TYPES>::pointer_type...>& allocs,
     std::index_sequence<I...>) {
 
     return std::make_tuple(
-        buffer_alloc<TYPES>::make_view(size, std::get<I>(ptrs))...);
+        buffer_alloc<TYPES>::make_view(size, std::get<I + 1>(allocs))...);
 }
 
 /// Function turning raw pointers into views
 ///
 /// @tparam ...TYPES The variable types
 /// @param size The fixed size of the variables
-/// @param ptrs Pointers to the allocated variables
+/// @param allocs Return value of @c vecmem::details::aligned_multiple_placement
 /// @return A tuple of view objects, describing the allocated variables
 ///
 template <typename... TYPES>
 auto make_buffer_views(
     std::size_t size,
-    std::tuple<typename view_type<TYPES>::pointer_type...>& ptrs) {
+    std::tuple<unique_alloc_ptr<char[]>&,
+               typename view_type<TYPES>::pointer_type...>& allocs) {
 
     return make_buffer_views_impl<TYPES...>(
-        size, ptrs, std::index_sequence_for<TYPES...>());
+        size, allocs, std::index_sequence_for<TYPES...>());
 }
 
 /// Helper function for @c vecmem::edm::details::make_buffer_views
 template <typename... TYPES, std::size_t... I>
 auto make_buffer_views_impl(
     std::size_t capacity, unsigned int* size,
-    std::tuple<typename view_type<TYPES>::pointer_type...>& ptrs,
+    std::tuple<unique_alloc_ptr<char[]>&, unsigned int*&,
+               typename view_type<TYPES>::pointer_type...>& allocs,
     std::index_sequence<I...>) {
 
-    return std::make_tuple(
-        buffer_alloc<TYPES>::make_view(capacity, size, std::get<I>(ptrs))...);
+    return std::make_tuple(buffer_alloc<TYPES>::make_view(
+        capacity, size, std::get<I + 2>(allocs))...);
 }
 
 /// Function turning raw pointers into views
@@ -116,16 +120,17 @@ auto make_buffer_views_impl(
 /// @tparam ...TYPES The variable types
 /// @param capacity The fixed capacity of the variables
 /// @param size Pointer to the resizable size of the variables
-/// @param ptrs Pointers to the allocated variables
+/// @param allocs Return value of @c vecmem::details::aligned_multiple_placement
 /// @return A tuple of view objects, describing the allocated variables
 ///
 template <typename... TYPES>
 auto make_buffer_views(
     std::size_t capacity, unsigned int* size,
-    std::tuple<typename view_type<TYPES>::pointer_type...>& ptrs) {
+    std::tuple<unique_alloc_ptr<char[]>&, unsigned int*&,
+               typename view_type<TYPES>::pointer_type...>& allocs) {
 
     return make_buffer_views_impl<TYPES...>(
-        capacity, size, ptrs, std::index_sequence_for<TYPES...>());
+        capacity, size, allocs, std::index_sequence_for<TYPES...>());
 }
 
 }  // namespace vecmem::edm::details
