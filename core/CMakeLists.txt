@@ -64,6 +64,8 @@ vecmem_add_library( vecmem_core core
    # EDM types.
    "include/vecmem/edm/buffer.hpp"
    "include/vecmem/edm/impl/buffer.ipp"
+   "include/vecmem/edm/view.hpp"
+   "include/vecmem/edm/impl/view.ipp"
    "include/vecmem/edm/types.hpp"
    "include/vecmem/edm/details/traits.hpp"
    #

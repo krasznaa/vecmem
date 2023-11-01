@@ -18,8 +18,12 @@
 namespace vecmem::edm {
 
 template <typename... VARTYPES>
-buffer<VARTYPES...>::buffer(std::size_t capacity, memory_resource& mr,
-                            data::buffer_type type) {
+buffer<VARTYPES...>::buffer(size_type capacity, memory_resource& mr,
+                            data::buffer_type type)
+    : view<VARTYPES...>() {
+
+    // Remember the capacity of the individual variables.
+    view<VARTYPES...>::m_capacity = capacity;
 
     // Temporary pointers to the individual variables.
     std::tuple<typename details::view_type<VARTYPES>::pointer_type...> pointers;
@@ -31,24 +35,26 @@ buffer<VARTYPES...>::buffer(std::size_t capacity, memory_resource& mr,
             vecmem::details::aligned_multiple_placement<
                 typename details::view_type<VARTYPES>::raw_type...>(
                 mr, details::buffer_alloc<VARTYPES>::size(capacity)...);
-        m_views = details::make_buffer_views<VARTYPES...>(capacity, pointers);
+        view<VARTYPES...>::m_views =
+            details::make_buffer_views<VARTYPES...>(capacity, pointers);
     } else if (type == data::buffer_type::resizable) {
         // Allocate memory for resizable variables.
-        std::tuple_cat(std::tie(m_memory, m_size), pointers) =
+        std::tuple_cat(std::tie(m_memory, view<VARTYPES...>::m_size),
+                       pointers) =
             vecmem::details::aligned_multiple_placement<
-                unsigned int,
-                typename details::view_type<VARTYPES>::raw_type...>(
+                size_type, typename details::view_type<VARTYPES>::raw_type...>(
                 mr, 1, details::buffer_alloc<VARTYPES>::size(capacity)...);
-        m_views =
-            details::make_buffer_views<VARTYPES...>(capacity, m_size, pointers);
+        view<VARTYPES...>::m_views = details::make_buffer_views<VARTYPES...>(
+            capacity, view<VARTYPES...>::m_size, pointers);
     } else {
         throw std::runtime_error("Unknown buffer type");
     }
 }
 
 template <typename... VARTYPES>
-buffer<VARTYPES...>::buffer(const std::vector<std::size_t>& capacities,
+buffer<VARTYPES...>::buffer(const std::vector<size_type>& capacities,
                             memory_resource& mr, memory_resource* host_mr,
-                            data::buffer_type type) {}
+                            data::buffer_type type)
+    : view<VARTYPES...>() {}
 
 }  // namespace vecmem::edm
