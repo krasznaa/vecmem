@@ -68,10 +68,9 @@ buffer<schema<VARTYPES...>>::buffer(size_type capacity, memory_resource& mr,
 }
 
 template <typename... VARTYPES>
-buffer<schema<VARTYPES...>>::buffer(const std::vector<size_type>& capacities,
-                                    memory_resource& mr,
-                                    memory_resource* host_mr,
-                                    data::buffer_type type)
+buffer<schema<VARTYPES...>>::buffer(const std::vector<size_type>&,
+                                    memory_resource&, memory_resource*,
+                                    data::buffer_type)
     : view_type() {}
 
 }  // namespace vecmem::edm
