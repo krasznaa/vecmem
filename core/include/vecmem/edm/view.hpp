@@ -7,7 +7,7 @@
 #pragma once
 
 // Local include(s).
-#include "vecmem/edm/details/traits.hpp"
+#include "vecmem/edm/details/view_traits.hpp"
 #include "vecmem/edm/schema.hpp"
 #include "vecmem/utils/types.hpp"
 
@@ -91,20 +91,20 @@ public:
     VECMEM_HOST_AND_DEVICE typename std::tuple_element<
         INDEX,
         std::tuple<typename details::view_type<VARTYPES>::type...>>::type&
-    get_view();
+    get();
     /// Get the view of a specific variable (const)
     template <std::size_t INDEX>
     VECMEM_HOST_AND_DEVICE const typename std::tuple_element<
         INDEX,
         std::tuple<typename details::view_type<VARTYPES>::type...>>::type&
-    get_view() const;
+    get() const;
 
     /// Direct (non-const) access to the underlying tuple of views
     VECMEM_HOST_AND_DEVICE
-    view_tuple_type& views();
+    view_tuple_type& variables();
     /// Direct (const) access to the underlying tuple of views
     VECMEM_HOST_AND_DEVICE
-    const view_tuple_type& views() const;
+    const view_tuple_type& variables() const;
 
 protected:
     /// Maximum capacity of the container

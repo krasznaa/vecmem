@@ -8,7 +8,7 @@
 
 // Local include(s).
 #include "vecmem/containers/details/aligned_multiple_placement.hpp"
-#include "vecmem/edm/details/traits.hpp"
+#include "vecmem/edm/details/buffer_traits.hpp"
 
 // System include(s).
 #include <iostream>

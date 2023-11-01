@@ -8,7 +8,6 @@
 
 // Local include(s).
 #include "vecmem/containers/data/buffer_type.hpp"
-#include "vecmem/edm/details/traits.hpp"
 #include "vecmem/edm/schema.hpp"
 #include "vecmem/edm/view.hpp"
 #include "vecmem/memory/memory_resource.hpp"

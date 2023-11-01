@@ -7,46 +7,13 @@
 #pragma once
 
 // Local include(s).
-#include "vecmem/containers/data/jagged_vector_view.hpp"
-#include "vecmem/containers/data/vector_view.hpp"
+#include "vecmem/edm/details/view_traits.hpp"
 #include "vecmem/edm/schema.hpp"
 
 // System include(s).
 #include <tuple>
 
 namespace vecmem::edm::details {
-
-/// @name Traits for the view types for the individual variables
-/// @{
-
-template <typename TYPE>
-struct view_type_base {
-    using raw_type = TYPE;
-    using pointer_type = raw_type*;
-};  // struct view_type_base
-
-template <typename TYPE>
-struct view_type : public view_type_base<TYPE> {
-    struct UNKNOWN_TYPE {};
-    using type = UNKNOWN_TYPE;
-};  // struct view_type
-
-template <typename TYPE>
-struct view_type<type::scalar<TYPE> > : public view_type_base<TYPE> {
-    using type = TYPE*;
-};  // struct view_type
-
-template <typename TYPE>
-struct view_type<type::vector<TYPE> > : public view_type_base<TYPE> {
-    using type = data::vector_view<TYPE>;
-};  // struct view_type
-
-template <typename TYPE>
-struct view_type<type::jagged_vector<TYPE> > : public view_type_base<TYPE> {
-    using type = data::jagged_vector_view<TYPE>;
-};  // struct view_type
-
-/// @}
 
 /// @name Traits for making allocations inside of buffers
 /// @{
@@ -104,6 +71,9 @@ struct buffer_alloc<type::vector<TYPE> > {
 template <typename TYPE>
 struct buffer_alloc<type::jagged_vector<TYPE> > {};  // struct buffer_alloc
 
+/// @}
+
+/// Helper function for @c vecmem::edm::details::make_buffer_views
 template <typename... TYPES, std::size_t... I>
 auto make_buffer_views_impl(
     std::size_t size,
@@ -114,6 +84,13 @@ auto make_buffer_views_impl(
         buffer_alloc<TYPES>::make_view(size, std::get<I>(ptrs))...);
 }
 
+/// Function turning raw pointers into views
+///
+/// @tparam ...TYPES The variable types
+/// @param size The fixed size of the variables
+/// @param ptrs Pointers to the allocated variables
+/// @return A tuple of view objects, describing the allocated variables
+///
 template <typename... TYPES>
 auto make_buffer_views(
     std::size_t size,
@@ -123,6 +100,7 @@ auto make_buffer_views(
         size, ptrs, std::index_sequence_for<TYPES...>());
 }
 
+/// Helper function for @c vecmem::edm::details::make_buffer_views
 template <typename... TYPES, std::size_t... I>
 auto make_buffer_views_impl(
     std::size_t capacity, unsigned int* size,
@@ -133,6 +111,14 @@ auto make_buffer_views_impl(
         buffer_alloc<TYPES>::make_view(capacity, size, std::get<I>(ptrs))...);
 }
 
+/// Function turning raw pointers into views
+///
+/// @tparam ...TYPES The variable types
+/// @param capacity The fixed capacity of the variables
+/// @param size Pointer to the resizable size of the variables
+/// @param ptrs Pointers to the allocated variables
+/// @return A tuple of view objects, describing the allocated variables
+///
 template <typename... TYPES>
 auto make_buffer_views(
     std::size_t capacity, unsigned int* size,
@@ -141,7 +127,5 @@ auto make_buffer_views(
     return make_buffer_views_impl<TYPES...>(
         capacity, size, ptrs, std::index_sequence_for<TYPES...>());
 }
-
-/// @}
 
 }  // namespace vecmem::edm::details

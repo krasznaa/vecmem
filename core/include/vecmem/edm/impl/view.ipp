@@ -22,7 +22,7 @@ VECMEM_HOST_AND_DEVICE view<schema<VARTYPES...>>::view(
     const view<schema<OTHERTYPES...>>& other)
     : m_capacity(other.capacity()),
       m_size(other.size_ptr()),
-      m_views(other.views()) {}
+      m_views(other.variables()) {}
 
 template <typename... VARTYPES>
 VECMEM_HOST_AND_DEVICE auto view<schema<VARTYPES...>>::size() const
@@ -56,7 +56,7 @@ template <typename... VARTYPES>
 template <std::size_t INDEX>
 VECMEM_HOST_AND_DEVICE typename std::tuple_element<
     INDEX, std::tuple<typename details::view_type<VARTYPES>::type...>>::type&
-view<schema<VARTYPES...>>::get_view() {
+view<schema<VARTYPES...>>::get() {
 
     return std::get<INDEX>(m_views);
 }
@@ -65,14 +65,14 @@ template <typename... VARTYPES>
 template <std::size_t INDEX>
 VECMEM_HOST_AND_DEVICE const typename std::tuple_element<
     INDEX, std::tuple<typename details::view_type<VARTYPES>::type...>>::type&
-view<schema<VARTYPES...>>::get_view() const {
+view<schema<VARTYPES...>>::get() const {
 
     return std::get<INDEX>(m_views);
 }
 
 template <typename... VARTYPES>
 VECMEM_HOST_AND_DEVICE typename view<schema<VARTYPES...>>::view_tuple_type&
-view<schema<VARTYPES...>>::views() {
+view<schema<VARTYPES...>>::variables() {
 
     return m_views;
 }
@@ -80,7 +80,7 @@ view<schema<VARTYPES...>>::views() {
 template <typename... VARTYPES>
 VECMEM_HOST_AND_DEVICE const typename view<
     schema<VARTYPES...>>::view_tuple_type&
-view<schema<VARTYPES...>>::views() const {
+view<schema<VARTYPES...>>::variables() const {
 
     return m_views;
 }
