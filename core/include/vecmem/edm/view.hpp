@@ -8,6 +8,7 @@
 
 // Local include(s).
 #include "vecmem/edm/details/traits.hpp"
+#include "vecmem/edm/schema.hpp"
 #include "vecmem/utils/types.hpp"
 
 // System include(s).
@@ -16,14 +17,26 @@
 
 namespace vecmem::edm {
 
+/// Dummy base type, which only gets used with incorrect template arguments
+///
+/// @tparam DUMMY A non @c vecmem::edm::schema type
+///
+template <typename DUMMY>
+class view {
+    /// Delete the constructor of this type
+    view() = delete;
+};
+
 /// Base class for SoA views
 ///
 /// @tparam ...VARTYPES The variable types to describe by the view
 ///
 template <typename... VARTYPES>
-class view {
+class view<schema<VARTYPES...>> {
 
 public:
+    /// The schema describing the container view
+    using schema_type = schema<VARTYPES...>;
     /// Size type used for the container
     typedef unsigned int size_type;
     /// Pointer type to the size of the container
@@ -57,7 +70,7 @@ public:
                           typename details::view_type<VARTYPES>::type,
                           typename details::view_type<OTHERTYPES>::type>>...>,
                   bool> = true>
-    VECMEM_HOST_AND_DEVICE view(const view<OTHERTYPES...>& other);
+    VECMEM_HOST_AND_DEVICE view(const view<schema<OTHERTYPES...>>& other);
 
     /// Get the size of the container
     VECMEM_HOST_AND_DEVICE

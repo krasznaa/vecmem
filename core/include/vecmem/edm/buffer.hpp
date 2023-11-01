@@ -9,6 +9,7 @@
 // Local include(s).
 #include "vecmem/containers/data/buffer_type.hpp"
 #include "vecmem/edm/details/traits.hpp"
+#include "vecmem/edm/schema.hpp"
 #include "vecmem/edm/view.hpp"
 #include "vecmem/memory/memory_resource.hpp"
 #include "vecmem/memory/unique_ptr.hpp"
@@ -20,12 +21,22 @@
 
 namespace vecmem::edm {
 
+/// Dummy base type, which only gets used with incorrect template arguments
+///
+/// @tparam DUMMY A non @c vecmem::edm::schema type
+///
+template <typename DUMMY>
+class buffer {
+    /// Delete the constructor of this type
+    buffer() = delete;
+};
+
 /// Base class for SoA buffers
 ///
 /// @tparam ...VARTYPES The variable types to store in the buffer
 ///
 template <typename... VARTYPES>
-class buffer : public view<VARTYPES...> {
+class buffer<schema<VARTYPES...>> : public view<schema<VARTYPES...>> {
 
     // Make sure that all variable types are supported.
     static_assert(
@@ -34,8 +45,12 @@ class buffer : public view<VARTYPES...> {
         "Unsupported variable type");
 
 public:
+    /// The schema describing the buffer's payload
+    using schema_type = schema<VARTYPES...>;
+    /// Base view type
+    using view_type = view<schema_type>;
     /// Size type used for the container
-    using size_type = typename view<VARTYPES...>::size_type;
+    using size_type = typename view_type::size_type;
 
     /// Constructor for a 1D buffer
     ///

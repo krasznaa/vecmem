@@ -6,7 +6,8 @@
  */
 #pragma once
 
-namespace vecmem::edm::type {
+namespace vecmem::edm {
+namespace type {
 
 /// @name Meta-types describing individual variables
 /// @{
@@ -34,4 +35,13 @@ struct jagged_vector {
 
 /// @}
 
-}  // namespace vecmem::edm::type
+}  // namespace type
+
+/// Meta type describing the "schema" of an SoA container
+///
+/// @tparam ...VARTYPES The variable types in the SoA container
+///
+template <typename... VARTYPES>
+struct schema {};
+
+}  // namespace vecmem::edm
