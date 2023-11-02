@@ -12,7 +12,8 @@
 // System include(s).
 #include <type_traits>
 
-namespace vecmem::edm::type::details {
+namespace vecmem::edm {
+namespace type::details {
 
 /// @name Traits turning variable types into constant types
 /// @{
@@ -40,4 +41,22 @@ struct add_const<type::jagged_vector<TYPE> > {
 
 /// @}
 
-}  // namespace vecmem::edm::type::details
+}  // namespace type::details
+
+/// @name Trait(s) making an entire schema into a constant one
+/// @{
+
+template <typename... VARTYPES>
+struct add_const {
+    struct UNKNOWN_TYPE {};
+    using type = UNKNOWN_TYPE;
+};
+
+template <typename... VARTYPES>
+struct add_const<schema<VARTYPES...> > {
+    using type = schema<typename type::details::add_const<VARTYPES>::type...>;
+};
+
+/// @}
+
+}  // namespace vecmem::edm
