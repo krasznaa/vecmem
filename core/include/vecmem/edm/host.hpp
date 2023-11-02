@@ -14,6 +14,7 @@
 #include "vecmem/memory/memory_resource.hpp"
 
 // System include(s).
+#include <cstddef>
 #include <tuple>
 #include <type_traits>
 
@@ -42,6 +43,11 @@ public:
 
     /// Constructor with a mandatory memory resource
     host(memory_resource& mr);
+
+    /// Get the size of the container
+    std::size_t size() const;
+    /// Resize the container
+    void resize(std::size_t size);
 
     /// Get the vector of a specific variable (non-const)
     template <std::size_t INDEX>

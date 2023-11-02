@@ -9,9 +9,14 @@
 // Local include(s).
 #include "vecmem/containers/jagged_vector.hpp"
 #include "vecmem/containers/vector.hpp"
+#include "vecmem/edm/details/schema_traits.hpp"
 #include "vecmem/edm/schema.hpp"
 #include "vecmem/memory/memory_resource.hpp"
 #include "vecmem/memory/unique_ptr.hpp"
+
+// System include(s).
+#include <stdexcept>
+#include <tuple>
 
 namespace vecmem::edm::details {
 
@@ -77,5 +82,65 @@ struct host_alloc<type::jagged_vector<TYPE> > {
 };  // struct host_alloc
 
 /// @}
+
+/// Recursive function getting the size of a host vector
+///
+/// Note that before calling this function, there is a check that at least one
+/// of the variables is a (jagged) vector type. So the index sequence must
+/// always contain at least a single element when this function is first called.
+///
+template <typename... VARTYPES, std::size_t INDEX, std::size_t... Is>
+std::size_t get_host_size(
+    const std::tuple<typename host_type<VARTYPES>::type...>& data,
+    std::index_sequence<INDEX, Is...>, std::size_t size = 0,
+    bool size_known = false) {
+
+    // Get the size of this variable.
+    std::size_t var_size = 0;
+    bool var_size_known = false;
+    if constexpr (type::details::is_vector<typename std::tuple_element<
+                      INDEX, std::tuple<VARTYPES...> >::type>::value) {
+        var_size = std::get<INDEX>(data).size();
+        var_size_known = true;
+    }
+    // Make sure that it's the same as what has been found before.
+    if (size_known && var_size_known && (var_size != size)) {
+        throw std::runtime_error(
+            "Inconsistent variable sizes in host container!");
+    }
+    // Terminate, or continue.
+    if constexpr (sizeof...(Is) == 0) {
+        if (!(size_known || var_size_known)) {
+            throw std::runtime_error(
+                "Could not determine the size of the host container?!?");
+        }
+        return var_size;
+    } else {
+        return get_host_size<VARTYPES...>(data, std::index_sequence<Is...>{},
+                                          var_size,
+                                          size_known || var_size_known);
+    }
+}
+
+/// Recursive function resizing a host vector
+///
+/// Note that before calling this function, there is a check that at least one
+/// of the variables is a (jagged) vector type. So the index sequence must
+/// always contain at least a single element when this function is first called.
+///
+template <typename... VARTYPES, std::size_t INDEX, std::size_t... Is>
+void host_resize(std::tuple<typename host_type<VARTYPES>::type...>& data,
+                 std::size_t size, std::index_sequence<INDEX, Is...>) {
+
+    // Resize this variable.
+    if constexpr (type::details::is_vector<typename std::tuple_element<
+                      INDEX, std::tuple<VARTYPES...> >::type>::value) {
+        std::get<INDEX>(data).resize(size);
+    }
+    // Terminate, or continue.
+    if constexpr (sizeof...(Is) > 0) {
+        host_resize<VARTYPES...>(data, size, std::index_sequence<Is...>{});
+    }
+}
 
 }  // namespace vecmem::edm::details

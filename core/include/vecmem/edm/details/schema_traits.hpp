@@ -41,6 +41,26 @@ struct add_const<type::jagged_vector<TYPE> > {
 
 /// @}
 
+/// @name Traits checking whether a given type is a "vector type"
+/// @{
+
+template <typename TYPE>
+struct is_vector {
+    static constexpr bool value = false;
+};  // struct is_vector
+
+template <typename TYPE>
+struct is_vector<type::vector<TYPE> > {
+    static constexpr bool value = true;
+};  // struct is_vector
+
+template <typename TYPE>
+struct is_vector<type::jagged_vector<TYPE> > {
+    static constexpr bool value = true;
+};  // struct is_vector
+
+/// @}
+
 }  // namespace type::details
 
 /// @name Trait(s) making an entire schema into a constant one

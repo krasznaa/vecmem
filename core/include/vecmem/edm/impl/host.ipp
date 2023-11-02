@@ -8,6 +8,7 @@
 
 // Local include(s).
 #include "vecmem/edm/details/host_traits.hpp"
+#include "vecmem/edm/details/schema_traits.hpp"
 #include "vecmem/edm/details/view_traits.hpp"
 
 // System include(s).
@@ -19,6 +20,32 @@ namespace edm {
 template <typename... VARTYPES>
 host<schema<VARTYPES...>>::host(memory_resource& mr)
     : m_data{details::host_alloc<VARTYPES>::make(mr)...} {}
+
+template <typename... VARTYPES>
+std::size_t host<schema<VARTYPES...>>::size() const {
+
+    // Make sure that there are some (jagged) vector types in the container.
+    static_assert(
+        std::disjunction_v<type::details::is_vector<VARTYPES>...>,
+        "This function requires at least one (jagged) vector variable.");
+
+    // Get the size of the vector(s).
+    return details::get_host_size<VARTYPES...>(
+        m_data, std::index_sequence_for<VARTYPES...>{});
+}
+
+template <typename... VARTYPES>
+void host<schema<VARTYPES...>>::resize(std::size_t size) {
+
+    // Make sure that there are some (jagged) vector types in the container.
+    static_assert(
+        std::disjunction_v<type::details::is_vector<VARTYPES>...>,
+        "This function requires at least one (jagged) vector variable.");
+
+    // Resize the vector(s).
+    details::host_resize<VARTYPES...>(m_data, size,
+                                      std::index_sequence_for<VARTYPES...>{});
+}
 
 template <typename... VARTYPES>
 template <std::size_t INDEX>
