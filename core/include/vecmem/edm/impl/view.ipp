@@ -10,7 +10,7 @@ namespace vecmem::edm {
 
 template <typename... VARTYPES>
 view<schema<VARTYPES...>>::view(size_type capacity, size_pointer size)
-    : m_capacity(capacity), m_size(size), m_views{} {}
+    : m_capacity(capacity), m_size(size), m_views{}, m_memory(0, nullptr) {}
 
 template <typename... VARTYPES>
 template <typename... OTHERTYPES,
@@ -26,7 +26,8 @@ VECMEM_HOST_AND_DEVICE view<schema<VARTYPES...>>::view(
     const view<schema<OTHERTYPES...>>& other)
     : m_capacity(other.capacity()),
       m_size(other.size_ptr()),
-      m_views(other.variables()) {}
+      m_views(other.variables()),
+      m_memory(0, nullptr) {}
 
 template <typename... VARTYPES>
 VECMEM_HOST_AND_DEVICE auto view<schema<VARTYPES...>>::size() const
@@ -87,6 +88,13 @@ VECMEM_HOST_AND_DEVICE const typename view<
 view<schema<VARTYPES...>>::variables() const {
 
     return m_views;
+}
+
+template <typename... VARTYPES>
+VECMEM_HOST_AND_DEVICE const data::vector_view<char>&
+view<schema<VARTYPES...>>::memory() const {
+
+    return m_memory;
 }
 
 }  // namespace vecmem::edm

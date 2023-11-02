@@ -7,6 +7,7 @@
 #pragma once
 
 // Local include(s).
+#include "vecmem/containers/data/vector_view.hpp"
 #include "vecmem/edm/details/view_traits.hpp"
 #include "vecmem/edm/schema.hpp"
 #include "vecmem/utils/types.hpp"
@@ -110,6 +111,10 @@ public:
     VECMEM_HOST_AND_DEVICE
     const view_tuple_type& variables() const;
 
+    /// View at the single (device) memory allocation of the container
+    VECMEM_HOST_AND_DEVICE
+    const data::vector_view<char>& memory() const;
+
 protected:
     /// Maximum capacity of the container
     size_type m_capacity = 0;
@@ -117,6 +122,9 @@ protected:
     size_pointer m_size = nullptr;
     /// Views for the individual variables
     view_tuple_type m_views;
+
+    /// View into the single (device) memory allocation of the container
+    data::vector_view<char> m_memory;
 
 };  // class view
 

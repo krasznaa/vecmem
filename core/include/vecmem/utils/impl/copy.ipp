@@ -10,6 +10,7 @@
 // VecMem include(s).
 #include "vecmem/containers/details/resize_jagged_vector.hpp"
 #include "vecmem/containers/jagged_vector.hpp"
+#include "vecmem/edm/details/schema_traits.hpp"
 #include "vecmem/memory/host_memory_resource.hpp"
 #include "vecmem/utils/debug.hpp"
 #include "vecmem/utils/type_traits.hpp"
@@ -395,6 +396,134 @@ copy::event_type copy::set_sizes(
     return create_event();
 }
 
+template <typename SCHEMA>
+copy::event_type copy::setup(edm::view<SCHEMA> data) const {
+
+    // Check if anything needs to be done.
+    if ((data.size_ptr() == nullptr) || (data.capacity() == 0)) {
+        return vecmem::copy::create_event();
+    }
+
+    // Initialize the "size variable" correctly on the buffer.
+    do_memset(sizeof(typename edm::view<SCHEMA>::size_type), data.size_ptr(),
+              0);
+    VECMEM_DEBUG_MSG(2,
+                     "Prepared an SoA container of capacity %u "
+                     "for use on a device (ptr: %p)",
+                     data.capacity(), static_cast<void*>(data.size_ptr()));
+
+    // Return a new event.
+    return create_event();
+}
+
+template <typename... VARTYPES>
+copy::event_type copy::memset(edm::view<edm::schema<VARTYPES...>> data,
+                              int value) const {
+
+    // Check if anything needs to be (or even can be) done.
+    if constexpr (sizeof...(VARTYPES) == 0) {
+        return vecmem::copy::create_event();
+    }
+
+    // Do the operation using the helper function, recursively.
+    memset_impl(data, value, std::index_sequence_for<VARTYPES...>{});
+
+    // Return a new event.
+    return create_event();
+}
+
+template <typename... VARTYPES1, typename... VARTYPES2>
+copy::event_type copy::operator()(
+    const edm::view<edm::schema<VARTYPES1...>>& from_view,
+    edm::view<edm::schema<VARTYPES2...>> to_view,
+    type::copy_type cptype) const {
+
+    // The input and output types are allowed to be different, but only by
+    // const-ness.
+    static_assert(sizeof...(VARTYPES1) == sizeof...(VARTYPES2),
+                  "Can only use compatible types in the copy");
+    static_assert(std::is_same<edm::schema<VARTYPES1...>,
+                               edm::schema<VARTYPES2...>>::value ||
+                      details::is_same_nc<edm::schema<VARTYPES1...>,
+                                          edm::schema<VARTYPES2...>>::value,
+                  "Can only use compatible types in the copy");
+
+    // First, handle the simple case, when both views have a contiguous memory
+    // layout.
+    if ((from_view.memory().ptr() != nullptr) &&
+        (to_view.memory().ptr() != nullptr) &&
+        (from_view.memory().size() == to_view.memory().size())) {
+
+        // If the "common size" is zero, we're done.
+        if (from_view.memory().size() == 0) {
+            return vecmem::copy::create_event();
+        }
+
+        // Let the user know what's happening.
+        VECMEM_DEBUG_MSG(2, "Performing optimal copy of %u bytes",
+                         from_view.memory().size());
+
+        // The memory is contiguous, so we can just copy the whole thing.
+        do_copy(from_view.memory().size(), from_view.memory().ptr(),
+                to_view.memory().ptr(), cptype);
+        return create_event();
+    }
+
+    // If not, then do an un-optimized copy variable-by-variable for now.
+    copy_impl(from_view, to_view, cptype,
+              std::index_sequence_for<VARTYPES1...>{});
+
+    // Return a new event.
+    return create_event();
+}
+
+template <typename... VARTYPES1, typename... VARTYPES2>
+copy::event_type copy::operator()(
+    const edm::view<edm::schema<VARTYPES1...>>& from_view,
+    edm::host<edm::schema<VARTYPES2...>>& to_vec,
+    type::copy_type cptype) const {
+
+    // The input and output types are allowed to be different, but only by
+    // const-ness.
+    static_assert(sizeof...(VARTYPES1) == sizeof...(VARTYPES2),
+                  "Can only use compatible types in the copy");
+    static_assert(std::is_same<edm::schema<VARTYPES1...>,
+                               edm::schema<VARTYPES2...>>::value ||
+                      details::is_same_nc<edm::schema<VARTYPES1...>,
+                                          edm::schema<VARTYPES2...>>::value,
+                  "Can only use compatible types in the copy");
+
+    // Resize the output object to the correct size(s).
+    to_vec.resize(from_view.size());
+
+    // Perform the memory copy.
+    return operator()(from_view, vecmem::get_data(to_vec), cptype);
+}
+
+template <typename SCHEMA>
+typename edm::view<SCHEMA>::size_type copy::get_size(
+    const edm::view<SCHEMA>& data) const {
+
+    // Handle the simple case, when the view/buffer is not resizable.
+    if (data.size_ptr() == nullptr) {
+        return data.capacity();
+    }
+
+    // If it *is* resizable, don't assume that the size is host-accessible.
+    // Explicitly copy it for access.
+    typename edm::view<SCHEMA>::size_type result = 0;
+    do_copy(sizeof(typename edm::view<SCHEMA>::size_type), data.size_ptr(),
+            &result, type::unknown);
+
+    // Wait for the copy operation to finish. With some backends
+    // (khm... SYCL... khm...) copies can be asynchronous even into
+    // non-pinned host memory.
+    create_event()->wait();
+
+    // Return what we got.
+    return result;
+}
+
 template <typename TYPE1, typename TYPE2>
 void copy::copy_views_impl(
     const std::vector<typename data::vector_view<TYPE1>::size_type>& sizes,
@@ -541,6 +670,51 @@ bool copy::is_contiguous(const data::vector_view<TYPE>* data,
         ptr = data[i].ptr();
     }
     return true;
+}
+
+template <typename... VARTYPES, std::size_t INDEX, std::size_t... Is>
+void copy::memset_impl(edm::view<edm::schema<VARTYPES...>> data, int value,
+                       std::index_sequence<INDEX, Is...>) const {
+
+    // Scalars do not have their own dedicated @c memset functions.
+    if constexpr (edm::type::details::is_scalar<typename std::tuple_element<
+                      INDEX, std::tuple<VARTYPES...>>::type>::value) {
+        do_memset(sizeof(typename std::tuple_element<
+                         INDEX, std::tuple<VARTYPES...>>::type::type),
+                  data.template get<INDEX>(), value);
+    } else {
+        // But vectors and jagged vectors do.
+        memset(data.template get<INDEX>(), value);
+    }
+    // Recurse into the next variable.
+    if constexpr (sizeof...(Is) > 0) {
+        memset_impl(data, value, std::index_sequence<Is...>{});
+    }
+}
+
+template <typename... VARTYPES1, typename... VARTYPES2, std::size_t INDEX,
+          std::size_t... Is>
+void copy::copy_impl(const edm::view<edm::schema<VARTYPES1...>>& from_view,
+                     edm::view<edm::schema<VARTYPES2...>> to_view,
+                     type::copy_type cptype,
+                     std::index_sequence<INDEX, Is...>) const {
+
+    // Scalars do not have their own dedicated @c copy functions.
+    if constexpr (edm::type::details::is_scalar<typename std::tuple_element<
+                      INDEX, std::tuple<VARTYPES1...>>::type>::value) {
+        do_copy(sizeof(typename std::tuple_element<
+                       INDEX, std::tuple<VARTYPES1...>>::type::type),
+                from_view.template get<INDEX>(), to_view.template get<INDEX>(),
+                cptype);
+    } else {
+        // But vectors and jagged vectors do.
+        operator()(from_view.template get<INDEX>(),
+                   to_view.template get<INDEX>(), cptype);
+    }
+    // Recurse into the next variable.
+    if constexpr (sizeof...(Is) > 0) {
+        copy_impl(from_view, to_view, cptype, std::index_sequence<Is...>{});
+    }
 }
 
 }  // namespace vecmem

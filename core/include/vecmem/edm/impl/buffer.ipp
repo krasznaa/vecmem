@@ -24,12 +24,15 @@ buffer<schema<VARTYPES...>>::buffer(size_type capacity, memory_resource& mr,
     // Remember the capacity of the individual variables.
     view_type::m_capacity = capacity;
 
+    // Bytes allocated in total.
+    std::size_t bytes = 0;
+
     // Make the main memory allocation.
     if (type == data::buffer_type::fixed_size) {
 
         // Return value for the subsequent allocation command.
         auto alloc_result = std::tuple_cat(
-            std::tie(m_memory),
+            std::tie(m_memory, bytes),
             std::tuple<
                 typename details::view_type<VARTYPES>::pointer_type...>{});
 
@@ -46,7 +49,7 @@ buffer<schema<VARTYPES...>>::buffer(size_type capacity, memory_resource& mr,
 
         // Return value for the subsequent allocation command.
         auto alloc_result = std::tuple_cat(
-            std::tie(m_memory, view_type::m_size),
+            std::tie(m_memory, bytes, view_type::m_size),
             std::tuple<
                 typename details::view_type<VARTYPES>::pointer_type...>{});
 
@@ -59,12 +62,14 @@ buffer<schema<VARTYPES...>>::buffer(size_type capacity, memory_resource& mr,
         view_type::m_views = details::make_buffer_views<VARTYPES...>(
             capacity, view_type::m_size, alloc_result);
 
-        // !!!FIXME!!! This will need to be done by vecmem::copy later on.
-        *(view_type::m_size) = 0u;
-
     } else {
         throw std::runtime_error("Unknown buffer type");
     }
+
+    // Set the base class's memory view.
+    view_type::m_memory = {
+        static_cast<typename decltype(view_type::m_memory)::size_type>(bytes),
+        m_memory.get()};
 }
 
 template <typename... VARTYPES>

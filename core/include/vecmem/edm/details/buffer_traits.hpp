@@ -78,12 +78,12 @@ struct buffer_alloc<type::jagged_vector<TYPE> > {};  // struct buffer_alloc
 template <typename... TYPES, std::size_t... I>
 auto make_buffer_views_impl(
     std::size_t size,
-    std::tuple<unique_alloc_ptr<char[]>&,
+    std::tuple<unique_alloc_ptr<char[]>&, std::size_t&,
                typename view_type<TYPES>::pointer_type...>& allocs,
     std::index_sequence<I...>) {
 
     return std::make_tuple(
-        buffer_alloc<TYPES>::make_view(size, std::get<I + 1>(allocs))...);
+        buffer_alloc<TYPES>::make_view(size, std::get<I + 2>(allocs))...);
 }
 
 /// Function turning raw pointers into views
@@ -96,7 +96,7 @@ auto make_buffer_views_impl(
 template <typename... TYPES>
 auto make_buffer_views(
     std::size_t size,
-    std::tuple<unique_alloc_ptr<char[]>&,
+    std::tuple<unique_alloc_ptr<char[]>&, std::size_t&,
                typename view_type<TYPES>::pointer_type...>& allocs) {
 
     return make_buffer_views_impl<TYPES...>(
@@ -107,12 +107,12 @@ auto make_buffer_views(
 template <typename... TYPES, std::size_t... I>
 auto make_buffer_views_impl(
     std::size_t capacity, unsigned int* size,
-    std::tuple<unique_alloc_ptr<char[]>&, unsigned int*&,
+    std::tuple<unique_alloc_ptr<char[]>&, size_t&, unsigned int*&,
                typename view_type<TYPES>::pointer_type...>& allocs,
     std::index_sequence<I...>) {
 
     return std::make_tuple(buffer_alloc<TYPES>::make_view(
-        capacity, size, std::get<I + 2>(allocs))...);
+        capacity, size, std::get<I + 3>(allocs))...);
 }
 
 /// Function turning raw pointers into views
@@ -126,7 +126,7 @@ auto make_buffer_views_impl(
 template <typename... TYPES>
 auto make_buffer_views(
     std::size_t capacity, unsigned int* size,
-    std::tuple<unique_alloc_ptr<char[]>&, unsigned int*&,
+    std::tuple<unique_alloc_ptr<char[]>&, std::size_t&, unsigned int*&,
                typename view_type<TYPES>::pointer_type...>& allocs) {
 
     return make_buffer_views_impl<TYPES...>(
