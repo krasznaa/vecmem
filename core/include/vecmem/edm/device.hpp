@@ -14,6 +14,7 @@
 
 // System include(s).
 #include <tuple>
+#include <utility>
 
 namespace vecmem::edm {
 
@@ -52,6 +53,10 @@ public:
     VECMEM_HOST_AND_DEVICE
     size_type capacity() const;
 
+    /// Add one default element to all (vector) variables (thread safe)
+    VECMEM_HOST_AND_DEVICE
+    size_type push_back_default();
+
     /// Get the vector of a specific variable (non-const)
     template <std::size_t INDEX>
     typename std::tuple_element<
@@ -75,6 +80,11 @@ public:
     const device_tuple_type& variables() const;
 
 private:
+    /// Construct a default element for every vector variable
+    template <std::size_t INDEX, std::size_t... Is>
+    VECMEM_HOST_AND_DEVICE void construct_default(
+        size_type index, std::index_sequence<INDEX, Is...>);
+
     /// Maximum capacity of the container
     size_type m_capacity = 0;
     /// (Resizable) Size of the container described by this view

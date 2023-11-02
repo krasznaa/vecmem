@@ -41,8 +41,18 @@ struct add_const<type::jagged_vector<TYPE> > {
 
 /// @}
 
-/// @name Traits checking whether a given type is a "vector type"
+/// @name Traits checking the type of a variable
 /// @{
+
+template <typename TYPE>
+struct is_scalar {
+    static constexpr bool value = false;
+};  // struct is_scalar
+
+template <typename TYPE>
+struct is_scalar<type::scalar<TYPE> > {
+    static constexpr bool value = true;
+};  // struct is_scalar
 
 template <typename TYPE>
 struct is_vector {
@@ -58,6 +68,16 @@ template <typename TYPE>
 struct is_vector<type::jagged_vector<TYPE> > {
     static constexpr bool value = true;
 };  // struct is_vector
+
+template <typename TYPE>
+struct is_jagged_vector {
+    static constexpr bool value = false;
+};  // struct is_jagged_vector
+
+template <typename TYPE>
+struct is_jagged_vector<type::jagged_vector<TYPE> > {
+    static constexpr bool value = true;
+};  // struct is_jagged_vector
 
 /// @}
 
