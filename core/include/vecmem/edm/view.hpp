@@ -53,6 +53,13 @@ public:
 
     /// Default constructor
     view() = default;
+    /// Constructor with a capacity and size.
+    ///
+    /// @param capacity The maximum capacity of the container
+    /// @param size The size of the container
+    ///
+    VECMEM_HOST_AND_DEVICE
+    view(size_type capacity, size_pointer size = nullptr);
     /// Constructor from a (slightly) different view
     ///
     /// As with @c vecmem::data::vector_view and

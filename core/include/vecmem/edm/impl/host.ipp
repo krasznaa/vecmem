@@ -116,6 +116,13 @@ edm::view<edm::schema<VARTYPES...>> get_data(
 
     // Create the result object.
     edm::view<edm::schema<VARTYPES...>> result;
+    // Set its size, if that's available.
+    if constexpr (std::disjunction_v<
+                      edm::type::details::is_vector<VARTYPES>...>) {
+        result = {static_cast<
+            typename edm::view<edm::schema<VARTYPES...>>::size_type>(
+            host.size())};
+    }
     // Fill it with the helper function.
     get_data_impl<VARTYPES...>(host, result,
                                std::index_sequence_for<VARTYPES...>{});
@@ -167,6 +174,13 @@ get_data(const edm::host<edm::schema<VARTYPES...>>& host) {
     edm::view<
         edm::schema<typename edm::type::details::add_const<VARTYPES>::type...>>
         result;
+    // Set its size, if that's available.
+    if constexpr (std::disjunction_v<
+                      edm::type::details::is_vector<VARTYPES>...>) {
+        result = {static_cast<
+            typename edm::view<edm::schema<VARTYPES...>>::size_type>(
+            host.size())};
+    }
     // Fill it with the helper function.
     get_data_impl<VARTYPES...>(host, result,
                                std::index_sequence_for<VARTYPES...>{});

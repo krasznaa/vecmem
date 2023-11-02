@@ -12,9 +12,26 @@
 namespace vecmem::edm {
 
 template <typename... VARTYPES>
-device<schema<VARTYPES...>>::device(const view<schema_type>& view)
-    : m_data{details::make_device_tuple<VARTYPES...>(
+VECMEM_HOST_AND_DEVICE device<schema<VARTYPES...>>::device(
+    const view<schema_type>& view)
+    : m_capacity(view.capacity()),
+      m_size(view.size_ptr()),
+      m_data{details::make_device_tuple<VARTYPES...>(
           view.variables(), std::index_sequence_for<VARTYPES...>())} {}
+
+template <typename... VARTYPES>
+VECMEM_HOST_AND_DEVICE typename device<schema<VARTYPES...>>::size_type
+device<schema<VARTYPES...>>::size() const {
+
+    return (m_size == nullptr ? m_capacity : *m_size);
+}
+
+template <typename... VARTYPES>
+VECMEM_HOST_AND_DEVICE typename device<schema<VARTYPES...>>::size_type
+device<schema<VARTYPES...>>::capacity() const {
+
+    return m_capacity;
+}
 
 template <typename... VARTYPES>
 template <std::size_t INDEX>

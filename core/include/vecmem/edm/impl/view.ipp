@@ -9,6 +9,10 @@
 namespace vecmem::edm {
 
 template <typename... VARTYPES>
+view<schema<VARTYPES...>>::view(size_type capacity, size_pointer size)
+    : m_capacity(capacity), m_size(size), m_views{} {}
+
+template <typename... VARTYPES>
 template <typename... OTHERTYPES,
           std::enable_if_t<
               std::conjunction_v<std::is_constructible<

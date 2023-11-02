@@ -10,6 +10,7 @@
 #include "vecmem/edm/details/device_traits.hpp"
 #include "vecmem/edm/schema.hpp"
 #include "vecmem/edm/view.hpp"
+#include "vecmem/utils/types.hpp"
 
 // System include(s).
 #include <tuple>
@@ -32,32 +33,52 @@ class device<schema<VARTYPES...>> {
 public:
     /// The schema describing the device-accessible variables
     using schema_type = schema<VARTYPES...>;
+    /// Size type used for the container
+    using size_type = typename view<schema_type>::size_type;
+    /// Pointer type to the size of the container
+    using size_pointer = typename view<schema_type>::size_pointer;
     /// The tuple type holding all of the the individual "device objects"
     typedef std::tuple<typename details::device_type<VARTYPES>::type...>
         device_tuple_type;
 
     /// Constructor from an approptiate view
+    VECMEM_HOST_AND_DEVICE
     device(const view<schema_type>& view);
+
+    /// Get the size of the container
+    VECMEM_HOST_AND_DEVICE
+    size_type size() const;
+    /// Get the maximum capacity of the container
+    VECMEM_HOST_AND_DEVICE
+    size_type capacity() const;
 
     /// Get the vector of a specific variable (non-const)
     template <std::size_t INDEX>
     typename std::tuple_element<
         INDEX,
         std::tuple<typename details::device_type<VARTYPES>::type...>>::type&
-    get();
+        VECMEM_HOST_AND_DEVICE
+        get();
     /// Get the vector of a specific variable (const)
     template <std::size_t INDEX>
     const typename std::tuple_element<
         INDEX,
         std::tuple<typename details::device_type<VARTYPES>::type...>>::type&
-    get() const;
+        VECMEM_HOST_AND_DEVICE
+        get() const;
 
     /// Direct (non-const) access to the underlying tuple of variables
+    VECMEM_HOST_AND_DEVICE
     device_tuple_type& variables();
     /// Direct (const) access to the underlying tuple of variables
+    VECMEM_HOST_AND_DEVICE
     const device_tuple_type& variables() const;
 
 private:
+    /// Maximum capacity of the container
+    size_type m_capacity = 0;
+    /// (Resizable) Size of the container described by this view
+    size_pointer m_size = nullptr;
     /// The tuple holding all of the individual "device objects"
     device_tuple_type m_data;
 
