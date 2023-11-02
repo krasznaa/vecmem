@@ -102,6 +102,8 @@ std::size_t get_host_size(
                       INDEX, std::tuple<VARTYPES...> >::type>::value) {
         var_size = std::get<INDEX>(data).size();
         var_size_known = true;
+    } else {
+        var_size = size;
     }
     // Make sure that it's the same as what has been found before.
     if (size_known && var_size_known && (var_size != size)) {
