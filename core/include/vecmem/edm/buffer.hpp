@@ -20,10 +20,7 @@
 
 namespace vecmem::edm {
 
-/// Dummy base type, which only gets used with incorrect template arguments
-///
-/// @tparam DUMMY A non @c vecmem::edm::schema type
-///
+/// Generic buffer template
 template <typename DUMMY>
 class buffer {
     /// Delete the constructor of this type

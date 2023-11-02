@@ -18,10 +18,7 @@
 namespace vecmem::edm {
 
 /// Dummy base type, which only gets used with incorrect template arguments
-///
-/// @tparam DUMMY A non @c vecmem::edm::schema type
-///
-template <typename DUMMY>
+template <typename T>
 class view {
     /// Delete the constructor of this type
     view() = delete;
