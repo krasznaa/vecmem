@@ -13,34 +13,10 @@
 // GoogleTest include(s).
 #include <gtest/gtest.h>
 
-/// Convenience type declaration
-using test_edm = vecmem::testing::simple_container;
-
 /// Test case for the EDM code
 class core_edm_copy_test : public testing::Test {
 
 protected:
-    /// Prepare a host container with some dummy data
-    void prepare(test_edm::host& obj) {
-        obj.resize(10);
-        test_edm::count::get(obj) = 55;
-        test_edm::average::get(obj) = 3.141592f;
-        for (std::size_t i = 0; i < obj.size(); ++i) {
-            test_edm::measurement::get(obj)[i] = 1.0f * static_cast<float>(i);
-            test_edm::index::get(obj)[i] = static_cast<int>(i);
-        }
-    }
-    /// Prepare a device container with some dummy data
-    void prepare(test_edm::device& obj) {
-        test_edm::count::get(obj) = 55;
-        test_edm::average::get(obj) = 3.141592f;
-        for (std::size_t i = 0; i < obj.capacity(); ++i) {
-            const test_edm::device::size_type ii = obj.push_back_default();
-            test_edm::measurement::get(obj)[ii] = 1.0f * static_cast<float>(ii);
-            test_edm::index::get(obj)[ii] = static_cast<int>(ii);
-        }
-    }
-
     /// Memory resource for the test(s)
     vecmem::host_memory_resource m_resource;
     /// Helper object for the memory copies.
@@ -48,13 +24,16 @@ protected:
 
 };  // class core_edm_copy_test
 
+/// Convenience type declaration
+using test_edm = vecmem::testing::simple_container;
+
 TEST_F(core_edm_copy_test, host_to_host) {
 
     // Create the "input" host container.
     test_edm::host input{m_resource};
 
     // Fill it with some data.
-    prepare(input);
+    vecmem::testing::fill(input);
 
     // Create a target host container.
     test_edm::host target{m_resource};
@@ -72,7 +51,7 @@ TEST_F(core_edm_copy_test, host_to_fixed_device) {
     test_edm::host input{m_resource};
 
     // Fill it with some data.
-    prepare(input);
+    vecmem::testing::fill(input);
 
     // Create the target buffer.
     test_edm::buffer target{
@@ -93,7 +72,7 @@ TEST_F(core_edm_copy_test, host_to_resiable_device) {
     test_edm::host input{m_resource};
 
     // Fill it with some data.
-    prepare(input);
+    vecmem::testing::fill(input);
 
     // Create the target buffer.
     test_edm::buffer target{
@@ -118,7 +97,7 @@ TEST_F(core_edm_copy_test, device_to_host) {
 
     // Fill it with some data.
     test_edm::device device{input};
-    prepare(device);
+    vecmem::testing::fill(device);
 
     // Create the target host container.
     test_edm::host target{m_resource};
@@ -140,7 +119,7 @@ TEST_F(core_edm_copy_test, device_to_fixed_device) {
 
     // Fill it with some data.
     test_edm::device device{input};
-    prepare(device);
+    vecmem::testing::fill(device);
 
     // Create the target buffer.
     test_edm::buffer target{input.size(), m_resource,
@@ -165,7 +144,7 @@ TEST_F(core_edm_copy_test, device_to_resizable_device) {
 
     // Fill it with some data.
     test_edm::device device{input};
-    prepare(device);
+    vecmem::testing::fill(device);
 
     // Create the target buffer.
     test_edm::buffer target{input.capacity(), m_resource,

@@ -494,7 +494,7 @@ copy::event_type copy::operator()(
                   "Can only use compatible types in the copy");
 
     // Resize the output object to the correct size(s).
-    to_vec.resize(from_view.size());
+    to_vec.resize(get_size(from_view));
 
     // Perform the memory copy.
     return operator()(from_view, vecmem::get_data(to_vec), cptype);
