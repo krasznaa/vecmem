@@ -113,17 +113,12 @@ VECMEM_HOST_AND_DEVICE void device<schema<VARTYPES...>>::construct_default(
     // Construct the new element in this variable, if it's a vector.
     construct_vector(index, std::get<INDEX>(m_data));
     // Continue the recursion.
-    construct_default<Is...>(index, std::index_sequence<Is...>{});
+    construct_default(index, std::index_sequence<Is...>{});
 }
 
 template <typename... VARTYPES>
-template <std::size_t INDEX>
 VECMEM_HOST_AND_DEVICE void device<schema<VARTYPES...>>::construct_default(
-    size_type index, std::index_sequence<INDEX>) {
-
-    // Construct the new element in this variable, if it's a vector.
-    construct_vector(index, std::get<INDEX>(m_data));
-}
+    size_type, std::index_sequence<>) {}
 
 template <typename... VARTYPES>
 template <typename T>

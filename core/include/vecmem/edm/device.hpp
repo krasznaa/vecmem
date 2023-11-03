@@ -86,9 +86,8 @@ private:
     VECMEM_HOST_AND_DEVICE void construct_default(
         size_type index, std::index_sequence<INDEX, Is...>);
     /// Construct a default element for every vector variable (terminal node)
-    template <std::size_t INDEX>
     VECMEM_HOST_AND_DEVICE void construct_default(size_type index,
-                                                  std::index_sequence<INDEX>);
+                                                  std::index_sequence<>);
 
     /// Default, no-op vector construction helper function
     template <typename T>
