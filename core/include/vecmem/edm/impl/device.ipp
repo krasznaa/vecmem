@@ -26,8 +26,8 @@ VECMEM_HOST_AND_DEVICE device<schema<VARTYPES...>>::device(
 
     // The container cannot be resizable if there are jagged vectors in it.
     assert(!((m_size != nullptr) &&
-             vecmem::details::disjunction_v<
-                 type::details::is_jagged_vector<VARTYPES>...>));
+             vecmem::details::disjunction<
+                 type::details::is_jagged_vector<VARTYPES>...>::value));
 }
 
 template <typename... VARTYPES>
@@ -51,13 +51,13 @@ device<schema<VARTYPES...>>::push_back_default() {
     // This can only be done on a resizable container.
     assert(m_size != nullptr);
     // There must be no jagged vector variables for this to work.
-    static_assert(!vecmem::details::disjunction_v<
-                      type::details::is_jagged_vector<VARTYPES>...>,
+    static_assert(!vecmem::details::disjunction<
+                      type::details::is_jagged_vector<VARTYPES>...>::value,
                   "Containers with jagged vector variables cannot be resized!");
     // There must be at least one vector variable in the container.
-    static_assert(
-        vecmem::details::disjunction_v<type::details::is_vector<VARTYPES>...>,
-        "This function requires at least one vector variable.");
+    static_assert(vecmem::details::disjunction<
+                      type::details::is_vector<VARTYPES>...>::value,
+                  "This function requires at least one vector variable.");
 
     // Increment the size of the container at first. So that we would "claim"
     // the index from other threads.
