@@ -16,7 +16,9 @@
 #include <tuple>
 #include <utility>
 
-namespace vecmem::edm::details {
+namespace vecmem {
+namespace edm {
+namespace details {
 
 /// @name Traits for the device types for the individual variables
 /// @{
@@ -51,12 +53,16 @@ struct device_type<type::jagged_vector<TYPE> > : public device_type_base<TYPE> {
 
 /// Helper function making the internal tuple of a device object
 template <typename... VARTYPES, std::size_t... Is>
-std::tuple<typename details::device_type<VARTYPES>::type...> make_device_tuple(
-    const typename std::tuple<typename details::view_type<VARTYPES>::type...>&
-        views,
-    std::index_sequence<Is...>) {
+VECMEM_HOST_AND_DEVICE
+    std::tuple<typename details::device_type<VARTYPES>::type...>
+    make_device_tuple(
+        const typename std::tuple<
+            typename details::view_type<VARTYPES>::type...>& views,
+        std::index_sequence<Is...>) {
 
     return {{std::get<Is>(views)}...};
 }
 
-}  // namespace vecmem::edm::details
+}  // namespace details
+}  // namespace edm
+}  // namespace vecmem

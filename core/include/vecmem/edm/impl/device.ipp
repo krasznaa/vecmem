@@ -14,7 +14,8 @@
 // System include(s).
 #include <cassert>
 
-namespace vecmem::edm {
+namespace vecmem {
+namespace edm {
 
 template <typename... VARTYPES>
 VECMEM_HOST_AND_DEVICE device<schema<VARTYPES...>>::device(
@@ -26,7 +27,8 @@ VECMEM_HOST_AND_DEVICE device<schema<VARTYPES...>>::device(
 
     // The container cannot be resizable if there are jagged vectors in it.
     assert(!((m_size != nullptr) &&
-             std::disjunction_v<type::details::is_jagged_vector<VARTYPES>...>));
+             vecmem::details::disjunction_v<
+                 type::details::is_jagged_vector<VARTYPES>...>));
 }
 
 template <typename... VARTYPES>
@@ -50,12 +52,13 @@ device<schema<VARTYPES...>>::push_back_default() {
     // This can only be done on a resizable container.
     assert(m_size != nullptr);
     // There must be no jagged vector variables for this to work.
-    static_assert(
-        !std::disjunction_v<type::details::is_jagged_vector<VARTYPES>...>,
-        "Containers with jagged vector variables cannot be resized!");
+    static_assert(!vecmem::details::disjunction_v<
+                      type::details::is_jagged_vector<VARTYPES>...>,
+                  "Containers with jagged vector variables cannot be resized!");
     // There must be at least one vector variable in the container.
-    static_assert(std::disjunction_v<type::details::is_vector<VARTYPES>...>,
-                  "This function requires at least one vector variable.");
+    static_assert(
+        vecmem::details::disjunction_v<type::details::is_vector<VARTYPES>...>,
+        "This function requires at least one vector variable.");
 
     // Increment the size of the container at first. So that we would "claim"
     // the index from other threads.
@@ -103,23 +106,38 @@ device<schema<VARTYPES...>>::variables() const {
     return m_data;
 }
 
-/// Helper function constructing a new element for each vector variable
 template <typename... VARTYPES>
 template <std::size_t INDEX, std::size_t... Is>
 VECMEM_HOST_AND_DEVICE void device<schema<VARTYPES...>>::construct_default(
     size_type index, std::index_sequence<INDEX, Is...>) {
 
-    // Construct the new element in this variable, if it's a vector. (We already
-    // checked at this point that there aren't any jagged vectors in the
-    // container...)
-    if constexpr (type::details::is_vector<typename std::tuple_element<
-                      INDEX, std::tuple<VARTYPES...>>::type>::value) {
-        std::get<INDEX>(m_data).construct(index, {});
-    }
-    // Continue if necessary.
-    if constexpr (sizeof...(Is) > 0) {
-        construct_default<Is...>(index, std::index_sequence<Is...>{});
-    }
+    // Construct the new element in this variable, if it's a vector.
+    construct_vector(index, std::get<INDEX>(m_data));
+    // Continue the recursion.
+    construct_default<Is...>(index, std::index_sequence<Is...>{});
 }
 
-}  // namespace vecmem::edm
+template <typename... VARTYPES>
+template <std::size_t INDEX>
+VECMEM_HOST_AND_DEVICE void device<schema<VARTYPES...>>::construct_default(
+    size_type index, std::index_sequence<INDEX>) {
+
+    // Construct the new element in this variable, if it's a vector.
+    construct_vector(index, std::get<INDEX>(m_data));
+}
+
+template <typename... VARTYPES>
+template <typename T>
+VECMEM_HOST_AND_DEVICE void device<schema<VARTYPES...>>::construct_vector(
+    size_type, T&) {}
+
+template <typename... VARTYPES>
+template <typename T>
+VECMEM_HOST_AND_DEVICE void device<schema<VARTYPES...>>::construct_vector(
+    size_type index, device_vector<T>& vec) {
+
+    vec.construct(index, {});
+}
+
+}  // namespace edm
+}  // namespace vecmem

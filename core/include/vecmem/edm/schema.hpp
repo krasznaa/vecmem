@@ -6,7 +6,8 @@
  */
 #pragma once
 
-namespace vecmem::edm {
+namespace vecmem {
+namespace edm {
 namespace type {
 
 /// @name Meta-types describing individual variables
@@ -44,4 +45,5 @@ struct jagged_vector {
 template <typename... VARTYPES>
 struct schema {};
 
-}  // namespace vecmem::edm
+}  // namespace edm
+}  // namespace vecmem

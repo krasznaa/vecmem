@@ -6,21 +6,24 @@
  */
 #pragma once
 
-namespace vecmem::edm {
+namespace vecmem {
+namespace edm {
 
 template <typename... VARTYPES>
-view<schema<VARTYPES...>>::view(size_type capacity, size_pointer size)
+VECMEM_HOST_AND_DEVICE view<schema<VARTYPES...>>::view(size_type capacity,
+                                                       size_pointer size)
     : m_capacity(capacity), m_size(size), m_views{}, m_memory(0, nullptr) {}
 
 template <typename... VARTYPES>
 template <typename... OTHERTYPES,
           std::enable_if_t<
-              std::conjunction_v<std::is_constructible<
+              vecmem::details::conjunction_v<std::is_constructible<
                   typename details::view_type<VARTYPES>::type,
                   typename details::view_type<OTHERTYPES>::type>...> &&
-                  std::disjunction_v<std::negation<std::is_same<
-                      typename details::view_type<VARTYPES>::type,
-                      typename details::view_type<OTHERTYPES>::type>>...>,
+                  vecmem::details::disjunction_v<
+                      vecmem::details::negation<std::is_same<
+                          typename details::view_type<VARTYPES>::type,
+                          typename details::view_type<OTHERTYPES>::type>>...>,
               bool>>
 VECMEM_HOST_AND_DEVICE view<schema<VARTYPES...>>::view(
     const view<schema<OTHERTYPES...>>& other)
@@ -97,4 +100,5 @@ view<schema<VARTYPES...>>::memory() const {
     return m_memory;
 }
 
-}  // namespace vecmem::edm
+}  // namespace edm
+}  // namespace vecmem

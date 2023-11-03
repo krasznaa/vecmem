@@ -16,7 +16,8 @@
 #include <tuple>
 #include <utility>
 
-namespace vecmem::edm {
+namespace vecmem {
+namespace edm {
 
 template <typename DUMMY>
 class device {
@@ -84,6 +85,17 @@ private:
     template <std::size_t INDEX, std::size_t... Is>
     VECMEM_HOST_AND_DEVICE void construct_default(
         size_type index, std::index_sequence<INDEX, Is...>);
+    /// Construct a default element for every vector variable (terminal node)
+    template <std::size_t INDEX>
+    VECMEM_HOST_AND_DEVICE void construct_default(size_type index,
+                                                  std::index_sequence<INDEX>);
+
+    /// Default, no-op vector construction helper function
+    template <typename T>
+    VECMEM_HOST_AND_DEVICE void construct_vector(size_type, T&);
+    template <typename T>
+    VECMEM_HOST_AND_DEVICE void construct_vector(size_type index,
+                                                 device_vector<T>& vec);
 
     /// Maximum capacity of the container
     size_type m_capacity = 0;
@@ -94,7 +106,8 @@ private:
 
 };  // class device
 
-}  // namespace vecmem::edm
+}  // namespace edm
+}  // namespace vecmem
 
 // Include the implementation.
 #include "vecmem/edm/impl/device.ipp"

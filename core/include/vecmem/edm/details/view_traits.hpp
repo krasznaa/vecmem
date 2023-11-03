@@ -11,7 +11,9 @@
 #include "vecmem/containers/data/vector_view.hpp"
 #include "vecmem/edm/schema.hpp"
 
-namespace vecmem::edm::details {
+namespace vecmem {
+namespace edm {
+namespace details {
 
 /// @name Traits for the view types for the individual variables
 /// @{
@@ -45,4 +47,6 @@ struct view_type<type::jagged_vector<TYPE> > : public view_type_base<TYPE> {
 
 /// @}
 
-}  // namespace vecmem::edm::details
+}  // namespace details
+}  // namespace edm
+}  // namespace vecmem

@@ -10,13 +10,15 @@
 #include "vecmem/containers/data/vector_view.hpp"
 #include "vecmem/edm/details/view_traits.hpp"
 #include "vecmem/edm/schema.hpp"
+#include "vecmem/utils/type_traits.hpp"
 #include "vecmem/utils/types.hpp"
 
 // System include(s).
 #include <tuple>
 #include <type_traits>
 
-namespace vecmem::edm {
+namespace vecmem {
+namespace edm {
 
 /// Dummy base type, which only gets used with incorrect template arguments
 template <typename T>
@@ -39,7 +41,7 @@ public:
     typedef unsigned int size_type;
     /// Pointer type to the size of the container
     typedef typename std::conditional<
-        std::disjunction_v<
+        vecmem::details::disjunction_v<
             std::is_const<typename details::view_type<VARTYPES>::raw_type>...>,
         const size_type*, size_type*>::type size_pointer;
     /// Constant pointer type to the size of the container
@@ -66,15 +68,17 @@ public:
     /// copy and move constructors for copying/moving identical types. Otherwise
     /// SYCL is not happy with sending these as kernel parameters.
     ///
-    template <typename... OTHERTYPES,
-              std::enable_if_t<
-                  std::conjunction_v<std::is_constructible<
-                      typename details::view_type<VARTYPES>::type,
-                      typename details::view_type<OTHERTYPES>::type>...> &&
-                      std::disjunction_v<std::negation<std::is_same<
-                          typename details::view_type<VARTYPES>::type,
-                          typename details::view_type<OTHERTYPES>::type>>...>,
-                  bool> = true>
+    template <
+        typename... OTHERTYPES,
+        std::enable_if_t<
+            vecmem::details::conjunction_v<std::is_constructible<
+                typename details::view_type<VARTYPES>::type,
+                typename details::view_type<OTHERTYPES>::type>...> &&
+                vecmem::details::disjunction_v<
+                    vecmem::details::negation<std::is_same<
+                        typename details::view_type<VARTYPES>::type,
+                        typename details::view_type<OTHERTYPES>::type>>...>,
+            bool> = true>
     VECMEM_HOST_AND_DEVICE view(const view<schema<OTHERTYPES...>>& other);
 
     /// Get the size of the container
@@ -128,7 +132,8 @@ protected:
 
 };  // class view
 
-}  // namespace vecmem::edm
+}  // namespace edm
+}  // namespace vecmem
 
 // Include the implementation.
 #include "vecmem/edm/impl/view.ipp"

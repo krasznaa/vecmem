@@ -12,8 +12,10 @@
 // System include(s).
 #include <type_traits>
 
-namespace vecmem::edm {
-namespace type::details {
+namespace vecmem {
+namespace edm {
+namespace type {
+namespace details {
 
 /// @name Traits turning variable types into constant types
 /// @{
@@ -81,7 +83,8 @@ struct is_jagged_vector<type::jagged_vector<TYPE> > {
 
 /// @}
 
-}  // namespace type::details
+}  // namespace details
+}  // namespace type
 
 /// @name Trait(s) making an entire schema into a constant one
 /// @{
@@ -99,4 +102,5 @@ struct add_const<schema<VARTYPES...> > {
 
 /// @}
 
-}  // namespace vecmem::edm
+}  // namespace edm
+}  // namespace vecmem

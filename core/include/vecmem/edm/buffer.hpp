@@ -8,6 +8,7 @@
 
 // Local include(s).
 #include "vecmem/containers/data/buffer_type.hpp"
+#include "vecmem/edm/details/schema_traits.hpp"
 #include "vecmem/edm/schema.hpp"
 #include "vecmem/edm/view.hpp"
 #include "vecmem/memory/memory_resource.hpp"
@@ -18,7 +19,8 @@
 #include <type_traits>
 #include <vector>
 
-namespace vecmem::edm {
+namespace vecmem {
+namespace edm {
 
 /// Generic buffer template
 template <typename DUMMY>
@@ -73,7 +75,30 @@ private:
 
 };  // class buffer
 
-}  // namespace vecmem::edm
+}  // namespace edm
+
+/// Helper function for getting a (possibly non-const) view for a buffer
+///
+/// @tparam ...VARTYPES The variable types describing the container
+/// @param buffer The buffer to get a view for
+/// @return A (possibly non-const) view into for the buffer
+///
+template <typename... VARTYPES>
+edm::view<edm::schema<VARTYPES...>> get_data(
+    edm::buffer<edm::schema<VARTYPES...>>& buffer);
+
+/// Helper function for getting a (const) view for a buffer
+///
+/// @tparam ...VARTYPES The variable types describing the container
+/// @param buffer The buffer to get a view for
+/// @return A (const) view into for the buffer
+///
+template <typename... VARTYPES>
+edm::view<
+    edm::schema<typename edm::type::details::add_const<VARTYPES>::type...>>
+get_data(const edm::buffer<edm::schema<VARTYPES...>>& buffer);
+
+}  // namespace vecmem
 
 // Include the implementation.
 #include "vecmem/edm/impl/buffer.ipp"

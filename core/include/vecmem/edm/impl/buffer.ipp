@@ -14,7 +14,8 @@
 #include <stdexcept>
 #include <tuple>
 
-namespace vecmem::edm {
+namespace vecmem {
+namespace edm {
 
 template <typename... VARTYPES>
 buffer<schema<VARTYPES...>>::buffer(size_type capacity, memory_resource& mr,
@@ -78,4 +79,21 @@ buffer<schema<VARTYPES...>>::buffer(const std::vector<size_type>&,
                                     data::buffer_type)
     : view_type() {}
 
-}  // namespace vecmem::edm
+}  // namespace edm
+
+template <typename... VARTYPES>
+edm::view<edm::schema<VARTYPES...>> get_data(
+    edm::buffer<edm::schema<VARTYPES...>>& buffer) {
+
+    return buffer;
+}
+
+template <typename... VARTYPES>
+edm::view<
+    edm::schema<typename edm::type::details::add_const<VARTYPES>::type...>>
+get_data(const edm::buffer<edm::schema<VARTYPES...>>& buffer) {
+
+    return buffer;
+}
+
+}  // namespace vecmem
