@@ -35,33 +35,21 @@ struct device_type : public device_type_base<TYPE> {
 };  // struct device_type
 
 template <typename TYPE>
-struct device_type<type::scalar<TYPE> > : public device_type_base<TYPE> {
+struct device_type<type::scalar<TYPE>> : public device_type_base<TYPE> {
     using type = TYPE*;
 };  // struct device_type
 
 template <typename TYPE>
-struct device_type<type::vector<TYPE> > : public device_type_base<TYPE> {
+struct device_type<type::vector<TYPE>> : public device_type_base<TYPE> {
     using type = device_vector<TYPE>;
 };  // struct device_type
 
 template <typename TYPE>
-struct device_type<type::jagged_vector<TYPE> > : public device_type_base<TYPE> {
+struct device_type<type::jagged_vector<TYPE>> : public device_type_base<TYPE> {
     using type = jagged_device_vector<TYPE>;
 };  // struct device_type
 
 /// @}
-
-/// Helper function making the internal tuple of a device object
-template <typename... VARTYPES, std::size_t... Is>
-VECMEM_HOST_AND_DEVICE
-    std::tuple<typename details::device_type<VARTYPES>::type...>
-    make_device_tuple(
-        const typename std::tuple<
-            typename details::view_type<VARTYPES>::type...>& views,
-        std::index_sequence<Is...>) {
-
-    return {{std::get<Is>(views)}...};
-}
 
 }  // namespace details
 }  // namespace edm

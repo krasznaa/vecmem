@@ -22,8 +22,7 @@ VECMEM_HOST_AND_DEVICE device<schema<VARTYPES...>>::device(
     const view<schema_type>& view)
     : m_capacity(view.capacity()),
       m_size(view.size_ptr()),
-      m_data{details::make_device_tuple<VARTYPES...>(
-          view.variables(), std::index_sequence_for<VARTYPES...>())} {
+      m_data{view.variables()} {
 
     // The container cannot be resizable if there are jagged vectors in it.
     assert(!((m_size != nullptr) &&
