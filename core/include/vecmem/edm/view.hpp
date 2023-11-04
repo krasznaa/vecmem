@@ -8,13 +8,14 @@
 
 // Local include(s).
 #include "vecmem/containers/data/vector_view.hpp"
+#include "vecmem/edm/details/tuple.hpp"
+#include "vecmem/edm/details/tuple_traits.hpp"
 #include "vecmem/edm/details/view_traits.hpp"
 #include "vecmem/edm/schema.hpp"
 #include "vecmem/utils/type_traits.hpp"
 #include "vecmem/utils/types.hpp"
 
 // System include(s).
-#include <tuple>
 #include <type_traits>
 
 namespace vecmem {
@@ -34,6 +35,9 @@ class view {
 template <typename... VARTYPES>
 class view<schema<VARTYPES...>> {
 
+    // Sanity check(s).
+    static_assert(sizeof...(VARTYPES) > 0, "Empty views are not supported");
+
 public:
     /// The schema describing the container view
     using schema_type = schema<VARTYPES...>;
@@ -41,14 +45,14 @@ public:
     typedef unsigned int size_type;
     /// Pointer type to the size of the container
     typedef typename std::conditional<
-        vecmem::details::disjunction_v<
-            std::is_const<typename details::view_type<VARTYPES>::raw_type>...>,
+        vecmem::details::disjunction<std::is_const<
+            typename details::view_type<VARTYPES>::raw_type>...>::value,
         const size_type*, size_type*>::type size_pointer;
     /// Constant pointer type to the size of the container
     typedef const typename std::remove_const<size_pointer>::type
         const_size_pointer;
     /// The tuple type holding all of the views for the individual variables
-    typedef std::tuple<typename details::view_type<VARTYPES>::type...>
+    typedef details::tuple<typename details::view_type<VARTYPES>::type...>
         view_tuple_type;
 
     /// Default constructor
@@ -97,15 +101,13 @@ public:
 
     /// Get the view of a specific variable (non-const)
     template <std::size_t INDEX>
-    VECMEM_HOST_AND_DEVICE typename std::tuple_element<
-        INDEX,
-        std::tuple<typename details::view_type<VARTYPES>::type...>>::type&
+    VECMEM_HOST_AND_DEVICE typename details::tuple_element_t<
+        INDEX, details::tuple<typename details::view_type<VARTYPES>::type...>>&
     get();
     /// Get the view of a specific variable (const)
     template <std::size_t INDEX>
-    VECMEM_HOST_AND_DEVICE const typename std::tuple_element<
-        INDEX,
-        std::tuple<typename details::view_type<VARTYPES>::type...>>::type&
+    VECMEM_HOST_AND_DEVICE const typename details::tuple_element_t<
+        INDEX, details::tuple<typename details::view_type<VARTYPES>::type...>>&
     get() const;
 
     /// Direct (non-const) access to the underlying tuple of views

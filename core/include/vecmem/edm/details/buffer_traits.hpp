@@ -7,6 +7,7 @@
 #pragma once
 
 // Local include(s).
+#include "vecmem/edm/details/tuple_traits.hpp"
 #include "vecmem/edm/details/view_traits.hpp"
 #include "vecmem/edm/schema.hpp"
 #include "vecmem/memory/unique_ptr.hpp"
@@ -82,7 +83,7 @@ auto make_buffer_views_impl(
                typename view_type<TYPES>::pointer_type...>& allocs,
     std::index_sequence<I...>) {
 
-    return std::make_tuple(
+    return details::make_tuple(
         buffer_alloc<TYPES>::make_view(size, std::get<I + 2>(allocs))...);
 }
 
@@ -111,7 +112,7 @@ auto make_buffer_views_impl(
                typename view_type<TYPES>::pointer_type...>& allocs,
     std::index_sequence<I...>) {
 
-    return std::make_tuple(buffer_alloc<TYPES>::make_view(
+    return details::make_tuple(buffer_alloc<TYPES>::make_view(
         capacity, size, std::get<I + 3>(allocs))...);
 }
 

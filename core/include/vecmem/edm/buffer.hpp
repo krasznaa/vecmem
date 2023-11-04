@@ -15,7 +15,6 @@
 #include "vecmem/memory/unique_ptr.hpp"
 
 // System include(s).
-#include <tuple>
 #include <type_traits>
 #include <vector>
 

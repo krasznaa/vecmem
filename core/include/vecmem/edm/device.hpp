@@ -8,12 +8,12 @@
 
 // Local include(s).
 #include "vecmem/edm/details/device_traits.hpp"
+#include "vecmem/edm/details/tuple.hpp"
 #include "vecmem/edm/schema.hpp"
 #include "vecmem/edm/view.hpp"
 #include "vecmem/utils/types.hpp"
 
 // System include(s).
-#include <tuple>
 #include <utility>
 
 namespace vecmem {
@@ -40,7 +40,7 @@ public:
     /// Pointer type to the size of the container
     using size_pointer = typename view<schema_type>::size_pointer;
     /// The tuple type holding all of the the individual "device objects"
-    typedef std::tuple<typename details::device_type<VARTYPES>::type...>
+    typedef details::tuple<typename details::device_type<VARTYPES>::type...>
         device_tuple_type;
 
     /// Constructor from an approptiate view
@@ -60,18 +60,16 @@ public:
 
     /// Get the vector of a specific variable (non-const)
     template <std::size_t INDEX>
-    typename std::tuple_element<
+    VECMEM_HOST_AND_DEVICE details::tuple_element_t<
         INDEX,
-        std::tuple<typename details::device_type<VARTYPES>::type...>>::type&
-        VECMEM_HOST_AND_DEVICE
-        get();
+        details::tuple<typename details::device_type<VARTYPES>::type...>>&
+    get();
     /// Get the vector of a specific variable (const)
     template <std::size_t INDEX>
-    const typename std::tuple_element<
+    VECMEM_HOST_AND_DEVICE const details::tuple_element_t<
         INDEX,
-        std::tuple<typename details::device_type<VARTYPES>::type...>>::type&
-        VECMEM_HOST_AND_DEVICE
-        get() const;
+        details::tuple<typename details::device_type<VARTYPES>::type...>>&
+    get() const;
 
     /// Direct (non-const) access to the underlying tuple of variables
     VECMEM_HOST_AND_DEVICE

@@ -62,20 +62,20 @@ VECMEM_HOST_AND_DEVICE auto view<schema<VARTYPES...>>::size_ptr() const
 
 template <typename... VARTYPES>
 template <std::size_t INDEX>
-VECMEM_HOST_AND_DEVICE typename std::tuple_element<
-    INDEX, std::tuple<typename details::view_type<VARTYPES>::type...>>::type&
+VECMEM_HOST_AND_DEVICE typename details::tuple_element_t<
+    INDEX, details::tuple<typename details::view_type<VARTYPES>::type...>>&
 view<schema<VARTYPES...>>::get() {
 
-    return std::get<INDEX>(m_views);
+    return details::get<INDEX>(m_views);
 }
 
 template <typename... VARTYPES>
 template <std::size_t INDEX>
-VECMEM_HOST_AND_DEVICE const typename std::tuple_element<
-    INDEX, std::tuple<typename details::view_type<VARTYPES>::type...>>::type&
+VECMEM_HOST_AND_DEVICE const typename details::tuple_element_t<
+    INDEX, details::tuple<typename details::view_type<VARTYPES>::type...>>&
 view<schema<VARTYPES...>>::get() const {
 
-    return std::get<INDEX>(m_views);
+    return details::get<INDEX>(m_views);
 }
 
 template <typename... VARTYPES>

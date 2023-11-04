@@ -74,20 +74,20 @@ device<schema<VARTYPES...>>::push_back_default() {
 
 template <typename... VARTYPES>
 template <std::size_t INDEX>
-VECMEM_HOST_AND_DEVICE typename std::tuple_element<
-    INDEX, std::tuple<typename details::device_type<VARTYPES>::type...>>::type&
+VECMEM_HOST_AND_DEVICE details::tuple_element_t<
+    INDEX, details::tuple<typename details::device_type<VARTYPES>::type...>>&
 device<schema<VARTYPES...>>::get() {
 
-    return std::get<INDEX>(m_data);
+    return details::get<INDEX>(m_data);
 }
 
 template <typename... VARTYPES>
 template <std::size_t INDEX>
-VECMEM_HOST_AND_DEVICE const typename std::tuple_element<
-    INDEX, std::tuple<typename details::device_type<VARTYPES>::type...>>::type&
+VECMEM_HOST_AND_DEVICE const details::tuple_element_t<
+    INDEX, details::tuple<typename details::device_type<VARTYPES>::type...>>&
 device<schema<VARTYPES...>>::get() const {
 
-    return std::get<INDEX>(m_data);
+    return details::get<INDEX>(m_data);
 }
 
 template <typename... VARTYPES>
@@ -111,7 +111,7 @@ VECMEM_HOST_AND_DEVICE void device<schema<VARTYPES...>>::construct_default(
     size_type index, std::index_sequence<INDEX, Is...>) {
 
     // Construct the new element in this variable, if it's a vector.
-    construct_vector(index, std::get<INDEX>(m_data));
+    construct_vector(index, details::get<INDEX>(m_data));
     // Continue the recursion.
     construct_default(index, std::index_sequence<Is...>{});
 }
