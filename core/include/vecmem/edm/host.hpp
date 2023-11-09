@@ -48,6 +48,8 @@ public:
     std::size_t size() const;
     /// Resize the container
     void resize(std::size_t size);
+    /// Reserve memory for the container
+    void reserve(std::size_t size);
 
     /// Get the vector of a specific variable (non-const)
     template <std::size_t INDEX>

@@ -48,6 +48,19 @@ void host<schema<VARTYPES...>>::resize(std::size_t size) {
 }
 
 template <typename... VARTYPES>
+void host<schema<VARTYPES...>>::reserve(std::size_t size) {
+
+    // Make sure that there are some (jagged) vector types in the container.
+    static_assert(
+        std::disjunction_v<type::details::is_vector<VARTYPES>...>,
+        "This function requires at least one (jagged) vector variable.");
+
+    // Resize the vector(s).
+    details::host_reserve<VARTYPES...>(m_data, size,
+                                       std::index_sequence_for<VARTYPES...>{});
+}
+
+template <typename... VARTYPES>
 template <std::size_t INDEX>
 typename std::tuple_element<
     INDEX, std::tuple<typename details::host_type<VARTYPES>::type...>>::type&

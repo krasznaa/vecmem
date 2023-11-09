@@ -145,4 +145,25 @@ void host_resize(std::tuple<typename host_type<VARTYPES>::type...>& data,
     }
 }
 
+/// Recursive function reserving memory for/in a host vector
+///
+/// Note that before calling this function, there is a check that at least one
+/// of the variables is a (jagged) vector type. So the index sequence must
+/// always contain at least a single element when this function is first called.
+///
+template <typename... VARTYPES, std::size_t INDEX, std::size_t... Is>
+void host_reserve(std::tuple<typename host_type<VARTYPES>::type...>& data,
+                  std::size_t size, std::index_sequence<INDEX, Is...>) {
+
+    // Resize this variable.
+    if constexpr (type::details::is_vector<typename std::tuple_element<
+                      INDEX, std::tuple<VARTYPES...> >::type>::value) {
+        std::get<INDEX>(data).reserve(size);
+    }
+    // Terminate, or continue.
+    if constexpr (sizeof...(Is) > 0) {
+        host_reserve<VARTYPES...>(data, size, std::index_sequence<Is...>{});
+    }
+}
+
 }  // namespace vecmem::edm::details
