@@ -75,7 +75,7 @@ struct host_alloc<type::vector<TYPE> > {
 
 template <typename TYPE>
 struct host_alloc<type::jagged_vector<TYPE> > {
-    static typename host_type<type::vector<TYPE> >::type make(
+    static typename host_type<type::jagged_vector<TYPE> >::type make(
         memory_resource& mr) {
         return typename host_type<type::jagged_vector<TYPE> >::type{&mr};
     }
