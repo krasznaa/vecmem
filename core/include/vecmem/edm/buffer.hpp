@@ -55,8 +55,9 @@ public:
     /// @param mr       The memory resource to use for the allocation
     /// @param type     The type of the buffer (fixed or variable size)
     ///
-    buffer(size_type capacity, memory_resource& mr,
-           data::buffer_type type = data::buffer_type::fixed_size);
+    buffer(
+        size_type capacity, memory_resource& mr,
+        vecmem::data::buffer_type type = vecmem::data::buffer_type::fixed_size);
     /// Constructor for a 2D buffer
     ///
     /// @param capacities The capacities of the 1D/2D arrays in the buffer
@@ -64,9 +65,10 @@ public:
     /// @param host_mr    The memory resource to use for the host allocation(s)
     /// @param type       The type of the buffer (fixed or variable size)
     ///
-    buffer(const std::vector<size_type>& capacities, memory_resource& mr,
-           memory_resource* host_mr = nullptr,
-           data::buffer_type type = data::buffer_type::fixed_size);
+    buffer(
+        const std::vector<size_type>& capacities, memory_resource& mr,
+        memory_resource* host_mr = nullptr,
+        vecmem::data::buffer_type type = vecmem::data::buffer_type::fixed_size);
 
 private:
     /// The full allocated block of memory

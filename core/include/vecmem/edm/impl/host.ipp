@@ -19,7 +19,7 @@ namespace edm {
 
 template <typename... VARTYPES>
 host<schema<VARTYPES...>>::host(memory_resource& mr)
-    : m_data{details::host_alloc<VARTYPES>::make(mr)...} {}
+    : m_data{details::host_alloc<VARTYPES>::make(mr)...}, m_resource{mr} {}
 
 template <typename... VARTYPES>
 std::size_t host<schema<VARTYPES...>>::size() const {
@@ -92,6 +92,12 @@ host<schema<VARTYPES...>>::variables() const {
     return m_data;
 }
 
+template <typename... VARTYPES>
+memory_resource& host<schema<VARTYPES...>>::resource() const {
+
+    return m_resource;
+}
+
 }  // namespace edm
 
 /// (Non-const) Overload of @c vecmem::get_data for scalar types
@@ -110,34 +116,45 @@ typename edm::details::view_type<edm::type::scalar<TYPE>>::type get_data(
 /// Helper function terminal node
 template <typename... VARTYPES>
 void get_data_impl(edm::host<edm::schema<VARTYPES...>>&,
-                   edm::view<edm::schema<VARTYPES...>>&,
+                   edm::data<edm::schema<VARTYPES...>>&, memory_resource&,
                    std::index_sequence<>) {}
 
 /// Helper function recursive node
 template <typename... VARTYPES, std::size_t I, std::size_t... Is>
 void get_data_impl(edm::host<edm::schema<VARTYPES...>>& host,
-                   edm::view<edm::schema<VARTYPES...>>& view,
-                   std::index_sequence<I, Is...>) {
+                   edm::data<edm::schema<VARTYPES...>>& data,
+                   memory_resource& mr, std::index_sequence<I, Is...>) {
 
-    view.template get<I>() = get_data(host.template get<I>());
-    get_data_impl(host, view, std::index_sequence<Is...>{});
+    if constexpr (edm::type::details::is_jagged_vector<
+                      typename std::tuple_element<
+                          I, std::tuple<VARTYPES...>>::type>::value) {
+        std::get<I>(data.data_variables()) =
+            get_data(host.template get<I>(), &mr);
+        data.template get<I>() = get_data(std::get<I>(data.data_variables()));
+    } else {
+        data.template get<I>() = get_data(host.template get<I>());
+    }
+    get_data_impl(host, data, mr, std::index_sequence<Is...>{});
 }
 
 template <typename... VARTYPES>
-edm::view<edm::schema<VARTYPES...>> get_data(
-    edm::host<edm::schema<VARTYPES...>>& host) {
+edm::data<edm::schema<VARTYPES...>> get_data(
+    edm::host<edm::schema<VARTYPES...>>& host, memory_resource* resource) {
 
     // Create the result object.
-    edm::view<edm::schema<VARTYPES...>> result;
+    edm::data<edm::schema<VARTYPES...>> result;
+    // Decide what memory resource to use for setting it up.
+    memory_resource& mr = (resource != nullptr ? *resource : host.resource());
     // Set its size, if that's available.
     if constexpr (std::disjunction_v<
                       edm::type::details::is_vector<VARTYPES>...>) {
         result = {static_cast<
-            typename edm::view<edm::schema<VARTYPES...>>::size_type>(
-            host.size())};
+                      typename edm::data<edm::schema<VARTYPES...>>::size_type>(
+                      host.size()),
+                  mr};
     }
     // Fill it with the helper function.
-    get_data_impl<VARTYPES...>(host, result,
+    get_data_impl<VARTYPES...>(host, result, mr,
                                std::index_sequence_for<VARTYPES...>{});
     // Return the filled object.
     return result;
@@ -161,41 +178,53 @@ get_data(const unique_obj_ptr<TYPE>& obj) {
 template <typename... VARTYPES>
 void get_data_impl(
     const edm::host<edm::schema<VARTYPES...>>&,
-    edm::view<edm::schema<
+    edm::data<edm::schema<
         typename edm::type::details::add_const<VARTYPES>::type...>>&,
-    std::index_sequence<>) {}
+    memory_resource&, std::index_sequence<>) {}
 
 /// Helper function recursive node
 template <typename... VARTYPES, std::size_t I, std::size_t... Is>
 void get_data_impl(
     const edm::host<edm::schema<VARTYPES...>>& host,
-    edm::view<
+    edm::data<
         edm::schema<typename edm::type::details::add_const<VARTYPES>::type...>>&
-        view,
-    std::index_sequence<I, Is...>) {
+        data,
+    memory_resource& mr, std::index_sequence<I, Is...>) {
 
-    view.template get<I>() = vecmem::get_data(host.template get<I>());
-    get_data_impl(host, view, std::index_sequence<Is...>{});
+    if constexpr (edm::type::details::is_jagged_vector<
+                      typename std::tuple_element<
+                          I, std::tuple<VARTYPES...>>::type>::value) {
+        std::get<I>(data.data_variables()) =
+            get_data(host.template get<I>(), &mr);
+        data.template get<I>() = get_data(std::get<I>(data.data_variables()));
+    } else {
+        data.template get<I>() = get_data(host.template get<I>());
+    }
+    get_data_impl(host, data, mr, std::index_sequence<Is...>{});
 }
 
 template <typename... VARTYPES>
-edm::view<
+edm::data<
     edm::schema<typename edm::type::details::add_const<VARTYPES>::type...>>
-get_data(const edm::host<edm::schema<VARTYPES...>>& host) {
+get_data(const edm::host<edm::schema<VARTYPES...>>& host,
+         memory_resource* resource) {
 
     // Create the result object.
-    edm::view<
+    edm::data<
         edm::schema<typename edm::type::details::add_const<VARTYPES>::type...>>
         result;
+    // Decide what memory resource to use for setting it up.
+    memory_resource& mr = (resource != nullptr ? *resource : host.resource());
     // Set its size, if that's available.
     if constexpr (std::disjunction_v<
                       edm::type::details::is_vector<VARTYPES>...>) {
         result = {static_cast<
-            typename edm::view<edm::schema<VARTYPES...>>::size_type>(
-            host.size())};
+                      typename edm::view<edm::schema<VARTYPES...>>::size_type>(
+                      host.size()),
+                  mr};
     }
     // Fill it with the helper function.
-    get_data_impl<VARTYPES...>(host, result,
+    get_data_impl<VARTYPES...>(host, result, mr,
                                std::index_sequence_for<VARTYPES...>{});
     // Return the filled object.
     return result;

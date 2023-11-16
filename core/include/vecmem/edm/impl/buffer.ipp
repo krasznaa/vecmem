@@ -19,7 +19,7 @@ namespace edm {
 
 template <typename... VARTYPES>
 buffer<schema<VARTYPES...>>::buffer(size_type capacity, memory_resource& mr,
-                                    data::buffer_type type)
+                                    vecmem::data::buffer_type type)
     : view_type() {
 
     // Remember the capacity of the individual variables.
@@ -29,7 +29,7 @@ buffer<schema<VARTYPES...>>::buffer(size_type capacity, memory_resource& mr,
     std::size_t bytes = 0;
 
     // Make the main memory allocation.
-    if (type == data::buffer_type::fixed_size) {
+    if (type == vecmem::data::buffer_type::fixed_size) {
 
         // Return value for the subsequent allocation command.
         auto alloc_result = std::tuple_cat(
@@ -46,7 +46,7 @@ buffer<schema<VARTYPES...>>::buffer(size_type capacity, memory_resource& mr,
         view_type::m_views =
             details::make_buffer_views<VARTYPES...>(capacity, alloc_result);
 
-    } else if (type == data::buffer_type::resizable) {
+    } else if (type == vecmem::data::buffer_type::resizable) {
 
         // Return value for the subsequent allocation command.
         auto alloc_result = std::tuple_cat(
@@ -76,7 +76,7 @@ buffer<schema<VARTYPES...>>::buffer(size_type capacity, memory_resource& mr,
 template <typename... VARTYPES>
 buffer<schema<VARTYPES...>>::buffer(const std::vector<size_type>&,
                                     memory_resource&, memory_resource*,
-                                    data::buffer_type)
+                                    vecmem::data::buffer_type)
     : view_type() {}
 
 }  // namespace edm
