@@ -46,7 +46,7 @@ public:
     /// Pointer type to the size of the container
     typedef typename std::conditional<
         vecmem::details::disjunction<std::is_const<
-            typename details::view_type<VARTYPES>::raw_type>...>::value,
+            typename details::view_type<VARTYPES>::payload_type>...>::value,
         const size_type*, size_type*>::type size_pointer;
     /// Constant pointer type to the size of the container
     typedef const typename std::remove_const<size_pointer>::type
@@ -92,12 +92,15 @@ public:
     VECMEM_HOST_AND_DEVICE
     size_type capacity() const;
 
-    /// Get a pointer to the size of the container (non-const)
+    /// Get a pointer to the size(es) of the container (non-const)
     VECMEM_HOST_AND_DEVICE
     size_pointer size_ptr();
-    /// Get a pointer to the size of the container (const)
+    /// Get a pointer to the size(es) of the container (const)
     VECMEM_HOST_AND_DEVICE
     const_size_pointer size_ptr() const;
+    /// Size of the array that @c size_ptr() points to
+    VECMEM_HOST_AND_DEVICE
+    size_type size_ptr_size() const;
 
     /// Get the view of a specific variable (non-const)
     template <std::size_t INDEX>
@@ -119,18 +122,34 @@ public:
 
     /// View at the single (device) memory allocation of the container
     VECMEM_HOST_AND_DEVICE
-    const data::vector_view<char>& memory() const;
+    const data::vector_view<char>& payload() const;
+
+    /// View at the memory that describes the layout of the container
+    VECMEM_HOST_AND_DEVICE
+    const data::vector_view<char>& layout() const;
+    /// View at the memory that describes the layout of the container (in host
+    /// accessible memory)
+    VECMEM_HOST_AND_DEVICE
+    const data::vector_view<char>& host_layout() const;
 
 protected:
     /// Maximum capacity of the container
     size_type m_capacity = 0;
-    /// (Resizable) Size of the container described by this view
+    /// (Resizable) Size(s) of the container described by this view
     size_pointer m_size = nullptr;
+    /// Size of the array that @c m_size points to
+    size_type m_size_size = 1;
     /// Views for the individual variables
     view_tuple_type m_views;
 
-    /// View into the single (device) memory allocation of the container
-    data::vector_view<char> m_memory;
+    /// View into the single (device) memory allocation for the "payload"
+    data::vector_view<char> m_payload;
+
+    /// View into the memory that describes the layout of the container
+    data::vector_view<char> m_layout;
+    /// View into the memory that describes the layout of the container (in host
+    /// accessible memory)
+    data::vector_view<char> m_host_layout;
 
 };  // class view
 

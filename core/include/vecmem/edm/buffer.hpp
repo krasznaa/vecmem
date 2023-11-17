@@ -16,6 +16,7 @@
 
 // System include(s).
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 namespace vecmem {
@@ -65,14 +66,31 @@ public:
     /// @param host_mr    The memory resource to use for the host allocation(s)
     /// @param type       The type of the buffer (fixed or variable size)
     ///
+    template <typename SIZE_TYPE = std::size_t,
+              std::enable_if_t<std::is_integral<SIZE_TYPE>::value &&
+                                   std::is_unsigned<SIZE_TYPE>::value,
+                               bool> = true>
     buffer(
-        const std::vector<size_type>& capacities, memory_resource& mr,
+        const std::vector<SIZE_TYPE>& capacities, memory_resource& mr,
         memory_resource* host_mr = nullptr,
         vecmem::data::buffer_type type = vecmem::data::buffer_type::fixed_size);
 
 private:
-    /// The full allocated block of memory
+    /// Set up a fixed sized buffer
+    template <typename SIZE_TYPE = std::size_t, std::size_t... INDICES>
+    void setup_fixed(const std::vector<SIZE_TYPE>& capacities,
+                     memory_resource& mr, memory_resource* host_mr,
+                     std::index_sequence<INDICES...>);
+    /// Set up a resizable buffer
+    template <typename SIZE_TYPE = std::size_t, std::size_t... INDICES>
+    void setup_resizable(const std::vector<SIZE_TYPE>& capacities,
+                         memory_resource& mr, memory_resource* host_mr,
+                         std::index_sequence<INDICES...>);
+
+    /// The full allocated block of (device) memory
     unique_alloc_ptr<char[]> m_memory;
+    /// The full allocated block of host accessible memory
+    unique_alloc_ptr<char[]> m_host_memory;
 
 };  // class buffer
 

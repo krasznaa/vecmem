@@ -450,12 +450,15 @@ copy::event_type copy::operator()(
 
     // First, handle the simple case, when both views have a contiguous memory
     // layout.
-    if ((from_view.memory().ptr() != nullptr) &&
-        (to_view.memory().ptr() != nullptr) &&
-        (from_view.memory().size() == to_view.memory().size())) {
+    if ((from_view.payload().ptr() != nullptr) &&
+        (to_view.payload().ptr() != nullptr) &&
+        (from_view.payload().size() == to_view.payload().size()) &&
+        (from_view.layout().ptr() != nullptr) &&
+        (to_view.layout().ptr() != nullptr) &&
+        (from_view.layout().size() == to_view.layout().size())) {
 
         // If the "common size" is zero, we're done.
-        if (from_view.memory().size() == 0) {
+        if (from_view.payload().size() == 0) {
             return vecmem::copy::create_event();
         }
 
@@ -463,9 +466,22 @@ copy::event_type copy::operator()(
         VECMEM_DEBUG_MSG(2, "Performing optimal copy of %u bytes",
                          from_view.memory().size());
 
-        // The memory is contiguous, so we can just copy the whole thing.
-        do_copy(from_view.memory().size(), from_view.memory().ptr(),
-                to_view.memory().ptr(), cptype);
+        // Copy the layout and the payload with 2 copy operations.
+        operator()(from_view.layout(), to_view.layout(), cptype);
+        operator()(from_view.payload(), to_view.payload(), cptype);
+
+        // If the target view is resizable, set its size.
+        // !!!TOBEFIXED!!! This is not the correct implementation yet!
+        if (to_view.size_ptr() != nullptr) {
+            if ((from_view.size_ptr() == nullptr) ||
+                (from_view.size_ptr_size() != to_view.size_ptr_size())) {
+                throw std::runtime_error("Inconsistent views!");
+            }
+            do_copy(to_view.size_ptr_size(), from_view.size_ptr(),
+                    to_view.size_ptr(), cptype);
+        }
+
+        // Create a synhronization event.
         return create_event();
     }
 

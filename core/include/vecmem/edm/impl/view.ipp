@@ -12,7 +12,12 @@ namespace edm {
 template <typename... VARTYPES>
 VECMEM_HOST_AND_DEVICE view<schema<VARTYPES...>>::view(size_type capacity,
                                                        size_pointer size)
-    : m_capacity(capacity), m_size(size), m_views{}, m_memory(0, nullptr) {}
+    : m_capacity(capacity),
+      m_size(size),
+      m_views{},
+      m_payload(0, nullptr),
+      m_layout(0, nullptr),
+      m_host_layout(0, nullptr) {}
 
 template <typename... VARTYPES>
 template <typename... OTHERTYPES,
@@ -30,7 +35,9 @@ VECMEM_HOST_AND_DEVICE view<schema<VARTYPES...>>::view(
     : m_capacity(other.capacity()),
       m_size(other.size_ptr()),
       m_views(other.variables()),
-      m_memory(0, nullptr) {}
+      m_payload(0, nullptr),
+      m_layout(0, nullptr),
+      m_host_layout(0, nullptr) {}
 
 template <typename... VARTYPES>
 VECMEM_HOST_AND_DEVICE auto view<schema<VARTYPES...>>::size() const
@@ -58,6 +65,13 @@ VECMEM_HOST_AND_DEVICE auto view<schema<VARTYPES...>>::size_ptr() const
     -> const_size_pointer {
 
     return m_size;
+}
+
+template <typename... VARTYPES>
+VECMEM_HOST_AND_DEVICE auto view<schema<VARTYPES...>>::size_ptr_size() const
+    -> size_type {
+
+    return m_size_size;
 }
 
 template <typename... VARTYPES>
@@ -95,9 +109,23 @@ view<schema<VARTYPES...>>::variables() const {
 
 template <typename... VARTYPES>
 VECMEM_HOST_AND_DEVICE const data::vector_view<char>&
-view<schema<VARTYPES...>>::memory() const {
+view<schema<VARTYPES...>>::payload() const {
 
-    return m_memory;
+    return m_payload;
+}
+
+template <typename... VARTYPES>
+VECMEM_HOST_AND_DEVICE const data::vector_view<char>&
+view<schema<VARTYPES...>>::layout() const {
+
+    return m_layout;
+}
+
+template <typename... VARTYPES>
+VECMEM_HOST_AND_DEVICE const data::vector_view<char>&
+view<schema<VARTYPES...>>::host_layout() const {
+
+    return m_host_layout;
 }
 
 }  // namespace edm
