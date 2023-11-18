@@ -6,6 +6,9 @@
  */
 #pragma once
 
+// Make Doxygen ignore the contents of this file.
+#ifndef VECMEM_DOXYGEN_IGNORE
+
 // Local include(s).
 #include "vecmem/edm/details/host_traits.hpp"
 #include "vecmem/edm/details/schema_traits.hpp"
@@ -18,11 +21,12 @@ namespace vecmem {
 namespace edm {
 
 template <typename... VARTYPES>
-host<schema<VARTYPES...>>::host(memory_resource& mr)
-    : m_data{details::host_alloc<VARTYPES>::make(mr)...}, m_resource{mr} {}
+VECMEM_HOST host<schema<VARTYPES...>>::host(memory_resource& resource)
+    : m_data{details::host_alloc<VARTYPES>::make(resource)...},
+      m_resource{resource} {}
 
 template <typename... VARTYPES>
-std::size_t host<schema<VARTYPES...>>::size() const {
+VECMEM_HOST std::size_t host<schema<VARTYPES...>>::size() const {
 
     // Make sure that there are some (jagged) vector types in the container.
     static_assert(
@@ -35,7 +39,7 @@ std::size_t host<schema<VARTYPES...>>::size() const {
 }
 
 template <typename... VARTYPES>
-void host<schema<VARTYPES...>>::resize(std::size_t size) {
+VECMEM_HOST void host<schema<VARTYPES...>>::resize(std::size_t size) {
 
     // Make sure that there are some (jagged) vector types in the container.
     static_assert(
@@ -48,7 +52,7 @@ void host<schema<VARTYPES...>>::resize(std::size_t size) {
 }
 
 template <typename... VARTYPES>
-void host<schema<VARTYPES...>>::reserve(std::size_t size) {
+VECMEM_HOST void host<schema<VARTYPES...>>::reserve(std::size_t size) {
 
     // Make sure that there are some (jagged) vector types in the container.
     static_assert(
@@ -62,38 +66,36 @@ void host<schema<VARTYPES...>>::reserve(std::size_t size) {
 
 template <typename... VARTYPES>
 template <std::size_t INDEX>
-typename std::tuple_element<
-    INDEX, std::tuple<typename details::host_type<VARTYPES>::type...>>::type&
-host<schema<VARTYPES...>>::get() {
+VECMEM_HOST auto host<schema<VARTYPES...>>::get() ->
+    typename std::tuple_element<INDEX, tuple_type>::type& {
 
     return std::get<INDEX>(m_data);
 }
 
 template <typename... VARTYPES>
 template <std::size_t INDEX>
-const typename std::tuple_element<
-    INDEX, std::tuple<typename details::host_type<VARTYPES>::type...>>::type&
-host<schema<VARTYPES...>>::get() const {
+VECMEM_HOST auto host<schema<VARTYPES...>>::get() const -> const
+    typename std::tuple_element<INDEX, tuple_type>::type& {
 
     return std::get<INDEX>(m_data);
 }
 
 template <typename... VARTYPES>
-typename host<schema<VARTYPES...>>::host_tuple_type&
+VECMEM_HOST typename host<schema<VARTYPES...>>::tuple_type&
 host<schema<VARTYPES...>>::variables() {
 
     return m_data;
 }
 
 template <typename... VARTYPES>
-const typename host<schema<VARTYPES...>>::host_tuple_type&
+VECMEM_HOST const typename host<schema<VARTYPES...>>::tuple_type&
 host<schema<VARTYPES...>>::variables() const {
 
     return m_data;
 }
 
 template <typename... VARTYPES>
-memory_resource& host<schema<VARTYPES...>>::resource() const {
+VECMEM_HOST memory_resource& host<schema<VARTYPES...>>::resource() const {
 
     return m_resource;
 }
@@ -107,23 +109,24 @@ memory_resource& host<schema<VARTYPES...>>::resource() const {
 /// @return A simple (non-const) pointer to the scalar object
 ///
 template <typename TYPE>
-typename edm::details::view_type<edm::type::scalar<TYPE>>::type get_data(
-    unique_obj_ptr<TYPE>& obj) {
+VECMEM_HOST typename edm::details::view_type<edm::type::scalar<TYPE>>::type
+get_data(unique_obj_ptr<TYPE>& obj) {
 
     return obj.get();
 }
 
 /// Helper function terminal node
 template <typename... VARTYPES>
-void get_data_impl(edm::host<edm::schema<VARTYPES...>>&,
-                   edm::data<edm::schema<VARTYPES...>>&, memory_resource&,
-                   std::index_sequence<>) {}
+VECMEM_HOST void get_data_impl(edm::host<edm::schema<VARTYPES...>>&,
+                               edm::data<edm::schema<VARTYPES...>>&,
+                               memory_resource&, std::index_sequence<>) {}
 
 /// Helper function recursive node
 template <typename... VARTYPES, std::size_t I, std::size_t... Is>
-void get_data_impl(edm::host<edm::schema<VARTYPES...>>& host,
-                   edm::data<edm::schema<VARTYPES...>>& data,
-                   memory_resource& mr, std::index_sequence<I, Is...>) {
+VECMEM_HOST void get_data_impl(edm::host<edm::schema<VARTYPES...>>& host,
+                               edm::data<edm::schema<VARTYPES...>>& data,
+                               memory_resource& mr,
+                               std::index_sequence<I, Is...>) {
 
     if constexpr (edm::type::details::is_jagged_vector<
                       typename std::tuple_element<
@@ -138,7 +141,7 @@ void get_data_impl(edm::host<edm::schema<VARTYPES...>>& host,
 }
 
 template <typename... VARTYPES>
-edm::data<edm::schema<VARTYPES...>> get_data(
+VECMEM_HOST edm::data<edm::schema<VARTYPES...>> get_data(
     edm::host<edm::schema<VARTYPES...>>& host, memory_resource* resource) {
 
     // Create the result object.
@@ -167,7 +170,7 @@ edm::data<edm::schema<VARTYPES...>> get_data(
 /// @return A simple (const) pointer to the scalar object
 ///
 template <typename TYPE>
-typename edm::details::view_type<
+VECMEM_HOST typename edm::details::view_type<
     edm::type::scalar<typename std::add_const<TYPE>::type>>::type
 get_data(const unique_obj_ptr<TYPE>& obj) {
 
@@ -176,7 +179,7 @@ get_data(const unique_obj_ptr<TYPE>& obj) {
 
 /// Helper function terminal node
 template <typename... VARTYPES>
-void get_data_impl(
+VECMEM_HOST void get_data_impl(
     const edm::host<edm::schema<VARTYPES...>>&,
     edm::data<edm::schema<
         typename edm::type::details::add_const<VARTYPES>::type...>>&,
@@ -184,7 +187,7 @@ void get_data_impl(
 
 /// Helper function recursive node
 template <typename... VARTYPES, std::size_t I, std::size_t... Is>
-void get_data_impl(
+VECMEM_HOST void get_data_impl(
     const edm::host<edm::schema<VARTYPES...>>& host,
     edm::data<
         edm::schema<typename edm::type::details::add_const<VARTYPES>::type...>>&
@@ -204,7 +207,7 @@ void get_data_impl(
 }
 
 template <typename... VARTYPES>
-edm::data<
+VECMEM_HOST edm::data<
     edm::schema<typename edm::type::details::add_const<VARTYPES>::type...>>
 get_data(const edm::host<edm::schema<VARTYPES...>>& host,
          memory_resource* resource) {
@@ -231,3 +234,5 @@ get_data(const edm::host<edm::schema<VARTYPES...>>& host,
 }
 
 }  // namespace vecmem
+
+#endif  // not VECMEM_DOXYGEN_IGNORE

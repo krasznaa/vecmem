@@ -12,25 +12,27 @@
 #include "vecmem/edm/details/schema_traits.hpp"
 #include "vecmem/edm/schema.hpp"
 #include "vecmem/memory/memory_resource.hpp"
+#include "vecmem/utils/types.hpp"
 
 // System include(s).
 #include <cstddef>
 #include <functional>
 #include <tuple>
-#include <type_traits>
 
 namespace vecmem {
 namespace edm {
 
-template <typename DUMMY>
-class host {
-    /// Delete the constructor of this type
-    host() = delete;
-};
+/// Technical base type for @c host<schema<VARTYPES...>>
+template <typename T>
+class host;
 
-/// Base class for SoA host containers
+/// Structure-of-Arrays host container
 ///
-/// @tparam ...VARTYPES The variable types to store in the container
+/// This class implements a structure-of-arrays container using host vector
+/// types. Allowing free construction, resizing, etc. of the individual
+/// variables in the client code.
+///
+/// @tparam ...VARTYPES The variable types to store in the host container
 ///
 template <typename... VARTYPES>
 class host<schema<VARTYPES...>> {
@@ -38,44 +40,63 @@ class host<schema<VARTYPES...>> {
 public:
     /// The schema describing the host's payload
     using schema_type = schema<VARTYPES...>;
+    /// Size type used for the container
+    using size_type = std::size_t;
     /// The tuple type holding all of the the individual variable vectors
-    typedef std::tuple<typename details::host_type<VARTYPES>::type...>
-        host_tuple_type;
+    using tuple_type =
+        std::tuple<typename details::host_type<VARTYPES>::type...>;
+
+    /// @name Constructors and assignment operators
+    /// @{
 
     /// Constructor with a mandatory memory resource
-    host(memory_resource& mr);
+    VECMEM_HOST
+    host(memory_resource& resource);
+
+    /// @}
+
+    /// @name Function(s) meant for normal, client use
+    /// @{
 
     /// Get the size of the container
-    std::size_t size() const;
+    VECMEM_HOST
+    size_type size() const;
     /// Resize the container
-    void resize(std::size_t size);
+    VECMEM_HOST
+    void resize(size_type size);
     /// Reserve memory for the container
-    void reserve(std::size_t size);
+    VECMEM_HOST
+    void reserve(size_type size);
 
     /// Get the vector of a specific variable (non-const)
     template <std::size_t INDEX>
-    typename std::tuple_element<
-        INDEX,
-        std::tuple<typename details::host_type<VARTYPES>::type...>>::type&
-    get();
+    VECMEM_HOST typename std::tuple_element<INDEX, tuple_type>::type& get();
     /// Get the vector of a specific variable (const)
     template <std::size_t INDEX>
-    const typename std::tuple_element<
-        INDEX,
-        std::tuple<typename details::host_type<VARTYPES>::type...>>::type&
+    VECMEM_HOST const typename std::tuple_element<INDEX, tuple_type>::type&
     get() const;
 
+    /// @}
+
+    /// @name Function(s) meant for internal use by other VecMem types
+    /// @{
+
     /// Direct (non-const) access to the underlying tuple of variables
-    host_tuple_type& variables();
+    VECMEM_HOST
+    tuple_type& variables();
     /// Direct (const) access to the underlying tuple of variables
-    const host_tuple_type& variables() const;
+    VECMEM_HOST
+    const tuple_type& variables() const;
 
     /// The memory resource used by the host container
+    VECMEM_HOST
     memory_resource& resource() const;
+
+    /// @}
 
 private:
     /// The tuple holding the individual variable vectors
-    host_tuple_type m_data;
+    tuple_type m_data;
     /// The memory resource used by the host container
     std::reference_wrapper<memory_resource> m_resource;
 
@@ -91,7 +112,7 @@ private:
 /// @return A (non-const) data object describing the host container
 ///
 template <typename... VARTYPES>
-edm::data<edm::schema<VARTYPES...>> get_data(
+VECMEM_HOST edm::data<edm::schema<VARTYPES...>> get_data(
     edm::host<edm::schema<VARTYPES...>>& host,
     memory_resource* resource = nullptr);
 
@@ -103,7 +124,7 @@ edm::data<edm::schema<VARTYPES...>> get_data(
 /// @return A (const) data object describing the host container
 ///
 template <typename... VARTYPES>
-edm::data<
+VECMEM_HOST edm::data<
     edm::schema<typename edm::type::details::add_const<VARTYPES>::type...>>
 get_data(const edm::host<edm::schema<VARTYPES...>>& host,
          memory_resource* resource = nullptr);

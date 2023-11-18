@@ -17,6 +17,7 @@
 // System include(s).
 #include <stdexcept>
 #include <tuple>
+#include <utility>
 
 namespace vecmem::edm::details {
 
@@ -24,28 +25,23 @@ namespace vecmem::edm::details {
 /// @{
 
 template <typename TYPE>
-struct host_type_base {
-    using raw_type = TYPE;
-};  // struct host_type_base
-
-template <typename TYPE>
-struct host_type : public host_type_base<TYPE> {
+struct host_type {
     struct UNKNOWN_TYPE {};
     using type = UNKNOWN_TYPE;
 };  // struct host_type
 
 template <typename TYPE>
-struct host_type<type::scalar<TYPE> > : public host_type_base<TYPE> {
+struct host_type<type::scalar<TYPE> > {
     using type = unique_obj_ptr<TYPE>;
 };  // struct host_type
 
 template <typename TYPE>
-struct host_type<type::vector<TYPE> > : public host_type_base<TYPE> {
+struct host_type<type::vector<TYPE> > {
     using type = vector<TYPE>;
 };  // struct host_type
 
 template <typename TYPE>
-struct host_type<type::jagged_vector<TYPE> > : public host_type_base<TYPE> {
+struct host_type<type::jagged_vector<TYPE> > {
     using type = jagged_vector<TYPE>;
 };  // struct host_type
 
@@ -107,13 +103,13 @@ std::size_t get_host_size(
     }
     // Make sure that it's the same as what has been found before.
     if (size_known && var_size_known && (var_size != size)) {
-        throw std::runtime_error(
+        throw std::length_error(
             "Inconsistent variable sizes in host container!");
     }
     // Terminate, or continue.
     if constexpr (sizeof...(Is) == 0) {
         if (!(size_known || var_size_known)) {
-            throw std::runtime_error(
+            throw std::length_error(
                 "Could not determine the size of the host container?!?");
         }
         return var_size;
