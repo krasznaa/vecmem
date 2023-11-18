@@ -57,7 +57,7 @@ buffer<schema<VARTYPES...>>::buffer(const std::vector<SIZE_TYPE>& capacities,
                                     memory_resource& main_mr,
                                     memory_resource* host_mr,
                                     vecmem::data::buffer_type type)
-    : view_type(capacities.size()) {
+    : view_type(static_cast<size_type>(capacities.size())) {
 
     // Make sure that this constructor is only used for a container that has
     // jagged vectors in it.
@@ -214,8 +214,8 @@ void buffer<schema<VARTYPES...>>::setup_resizable(
     if constexpr (has_jagged_vectors) {
         // Set the size of the array that the base class's size pointer will
         // point to.
-        view_type::m_size_size =
-            (details::buffer_alloc<VARTYPES>::layout_size(capacities) + ...);
+        view_type::m_size_size = static_cast<size_type>(
+            (details::buffer_alloc<VARTYPES>::layout_size(capacities) + ...));
         // Perform the allocation.
         std::tie(m_memory, std::ignore, std::get<INDICES>(sizes_ptrs)...,
                  std::get<INDICES>(layout_ptrs)...,
