@@ -6,6 +6,9 @@
  */
 #pragma once
 
+// Make Doxygen ignore the contents of this file.
+#ifndef VECMEM_DOXYGEN_IGNORE
+
 namespace vecmem {
 namespace edm {
 
@@ -35,9 +38,38 @@ VECMEM_HOST_AND_DEVICE view<schema<VARTYPES...>>::view(
     : m_capacity(other.capacity()),
       m_size(other.size_ptr()),
       m_views(other.variables()),
-      m_payload(0, nullptr),
-      m_layout(0, nullptr),
-      m_host_layout(0, nullptr) {}
+      m_payload(other.payload()),
+      m_layout(other.layout()),
+      m_host_layout(other.host_layout()) {}
+
+template <typename... VARTYPES>
+template <typename... OTHERTYPES,
+          std::enable_if_t<
+              vecmem::details::conjunction_v<std::is_constructible<
+                  typename details::view_type<VARTYPES>::type,
+                  typename details::view_type<OTHERTYPES>::type>...> &&
+                  vecmem::details::disjunction_v<
+                      vecmem::details::negation<std::is_same<
+                          typename details::view_type<VARTYPES>::type,
+                          typename details::view_type<OTHERTYPES>::type>>...>,
+              bool>>
+VECMEM_HOST_AND_DEVICE auto view<schema<VARTYPES...>>::operator=(
+    const view<schema<OTHERTYPES...>>& rhs) -> view& {
+
+    // Note that self-assignment with this function should never be a thing.
+    // So we don't need to check for it.
+
+    // Copy the data from the other view.
+    m_capacity = rhs.capacity();
+    m_size = rhs.size_ptr();
+    m_views = rhs.variables();
+    m_payload = rhs.payload();
+    m_layout = rhs.layout();
+    m_host_layout = rhs.host_layout();
+
+    // Return a reference to this object.
+    return *this;
+}
 
 template <typename... VARTYPES>
 VECMEM_HOST_AND_DEVICE auto view<schema<VARTYPES...>>::size() const
@@ -51,6 +83,22 @@ VECMEM_HOST_AND_DEVICE auto view<schema<VARTYPES...>>::capacity() const
     -> size_type {
 
     return m_capacity;
+}
+
+template <typename... VARTYPES>
+template <std::size_t INDEX>
+VECMEM_HOST_AND_DEVICE auto view<schema<VARTYPES...>>::get()
+    -> details::tuple_element_t<INDEX, tuple_type>& {
+
+    return details::get<INDEX>(m_views);
+}
+
+template <typename... VARTYPES>
+template <std::size_t INDEX>
+VECMEM_HOST_AND_DEVICE auto view<schema<VARTYPES...>>::get() const
+    -> const details::tuple_element_t<INDEX, tuple_type>& {
+
+    return details::get<INDEX>(m_views);
 }
 
 template <typename... VARTYPES>
@@ -75,61 +123,41 @@ VECMEM_HOST_AND_DEVICE auto view<schema<VARTYPES...>>::size_ptr_size() const
 }
 
 template <typename... VARTYPES>
-template <std::size_t INDEX>
-VECMEM_HOST_AND_DEVICE typename details::tuple_element_t<
-    INDEX, details::tuple<typename details::view_type<VARTYPES>::type...>>&
-view<schema<VARTYPES...>>::get() {
-
-    return details::get<INDEX>(m_views);
-}
-
-template <typename... VARTYPES>
-template <std::size_t INDEX>
-VECMEM_HOST_AND_DEVICE const typename details::tuple_element_t<
-    INDEX, details::tuple<typename details::view_type<VARTYPES>::type...>>&
-view<schema<VARTYPES...>>::get() const {
-
-    return details::get<INDEX>(m_views);
-}
-
-template <typename... VARTYPES>
-VECMEM_HOST_AND_DEVICE typename view<schema<VARTYPES...>>::view_tuple_type&
-view<schema<VARTYPES...>>::variables() {
+VECMEM_HOST_AND_DEVICE auto view<schema<VARTYPES...>>::variables()
+    -> tuple_type& {
 
     return m_views;
 }
 
 template <typename... VARTYPES>
-VECMEM_HOST_AND_DEVICE const typename view<
-    schema<VARTYPES...>>::view_tuple_type&
-view<schema<VARTYPES...>>::variables() const {
+VECMEM_HOST_AND_DEVICE auto view<schema<VARTYPES...>>::variables() const
+    -> const tuple_type& {
 
     return m_views;
 }
 
 template <typename... VARTYPES>
-VECMEM_HOST_AND_DEVICE const typename view<
-    schema<VARTYPES...>>::memory_view_type&
-view<schema<VARTYPES...>>::payload() const {
+VECMEM_HOST_AND_DEVICE auto view<schema<VARTYPES...>>::payload() const
+    -> const memory_view_type& {
 
     return m_payload;
 }
 
 template <typename... VARTYPES>
-VECMEM_HOST_AND_DEVICE const typename view<
-    schema<VARTYPES...>>::memory_view_type&
-view<schema<VARTYPES...>>::layout() const {
+VECMEM_HOST_AND_DEVICE auto view<schema<VARTYPES...>>::layout() const
+    -> const memory_view_type& {
 
     return m_layout;
 }
 
 template <typename... VARTYPES>
-VECMEM_HOST_AND_DEVICE const typename view<
-    schema<VARTYPES...>>::memory_view_type&
-view<schema<VARTYPES...>>::host_layout() const {
+VECMEM_HOST_AND_DEVICE auto view<schema<VARTYPES...>>::host_layout() const
+    -> const memory_view_type& {
 
     return m_host_layout;
 }
 
 }  // namespace edm
 }  // namespace vecmem
+
+#endif  // not VECMEM_DOXYGEN_IGNORE
