@@ -452,10 +452,7 @@ copy::event_type copy::operator()(
     // layout.
     if ((from_view.payload().ptr() != nullptr) &&
         (to_view.payload().ptr() != nullptr) &&
-        (from_view.payload().size() == to_view.payload().size()) &&
-        (from_view.layout().ptr() != nullptr) &&
-        (to_view.layout().ptr() != nullptr) &&
-        (from_view.layout().size() == to_view.layout().size())) {
+        (from_view.payload().size() == to_view.payload().size())) {
 
         // If the "common size" is zero, we're done.
         if (from_view.payload().size() == 0) {
@@ -464,10 +461,9 @@ copy::event_type copy::operator()(
 
         // Let the user know what's happening.
         VECMEM_DEBUG_MSG(2, "Performing optimal copy of %u bytes",
-                         from_view.memory().size());
+                         from_view.payload().size());
 
-        // Copy the layout and the payload with 2 copy operations.
-        operator()(from_view.layout(), to_view.layout(), cptype);
+        // Copy the payload with a single copy operation.
         operator()(from_view.payload(), to_view.payload(), cptype);
 
         // If the target view is resizable, set its size.

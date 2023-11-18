@@ -202,11 +202,6 @@ void buffer<schema<VARTYPES...>>::setup_resizable(
     std::tuple<typename details::view_type<VARTYPES>::payload_ptr...>
         payload_ptrs;
 
-    // Return value for the main allocation command.
-    auto main_alloc_result = std::tie(
-        m_memory, std::ignore, std::get<INDICES>(sizes_ptrs)...,
-        std::get<INDICES>(layout_ptrs)..., std::get<INDICES>(payload_ptrs)...);
-
     // Allocation sizes for the layouts and payloads.
     const std::vector<std::size_t> layout_sizes = {
         details::buffer_alloc<VARTYPES>::layout_size(capacities)...};
@@ -268,32 +263,27 @@ void buffer<schema<VARTYPES...>>::setup_resizable(
         (layout_begin < layout_end)) {
         view_type::m_layout = {
             static_cast<typename decltype(view_type::m_layout)::size_type>(
-                layout_end - layout_begin) +
-                1u,
+                layout_end - layout_begin),
             layout_begin};
     }
     if ((payload_begin != nullptr) && (payload_end != nullptr) &&
         (payload_begin < payload_end)) {
         view_type::m_payload = {
             static_cast<typename decltype(view_type::m_payload)::size_type>(
-                payload_end - payload_begin) +
-                1u,
+                payload_end - payload_begin),
             payload_begin};
     }
 
     // If requested, allocate host memory for the layouts.
     if (host_mr != nullptr) {
 
-        // Return value for the host allocation command, reusing the memory
-        // pointers from the main allocation.
-        auto host_alloc_result = std::tie(
-            m_host_memory, std::ignore, std::get<INDICES>(host_layout_ptrs)...);
-
         // Allocate memory for just the layout in host memory.
-        host_alloc_result = vecmem::details::aligned_multiple_placement<
-            typename details::view_type<VARTYPES>::layout_type...>(
-            *host_mr,
-            details::buffer_alloc<VARTYPES>::layout_size(capacities)...);
+        std::tie(m_host_memory, std::ignore,
+                 std::get<INDICES>(host_layout_ptrs)...) =
+            vecmem::details::aligned_multiple_placement<
+                typename details::view_type<VARTYPES>::layout_type...>(
+                *host_mr,
+                details::buffer_alloc<VARTYPES>::layout_size(capacities)...);
 
         // Get the pointers for the typeless view.
         char* const host_layout_begin =
@@ -307,8 +297,7 @@ void buffer<schema<VARTYPES...>>::setup_resizable(
             (host_layout_begin < host_layout_end)) {
             view_type::m_host_layout = {
                 static_cast<typename decltype(view_type::m_layout)::size_type>(
-                    host_layout_end - host_layout_begin) +
-                    1u,
+                    host_layout_end - host_layout_begin),
                 host_layout_begin};
         }
     }
