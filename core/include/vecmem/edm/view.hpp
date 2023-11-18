@@ -54,6 +54,8 @@ public:
     /// The tuple type holding all of the views for the individual variables
     typedef details::tuple<typename details::view_type<VARTYPES>::type...>
         view_tuple_type;
+    /// Type of the view(s) for the raw data of the view
+    typedef vecmem::data::vector_view<char> memory_view_type;
 
     /// Default constructor
     view() = default;
@@ -122,15 +124,15 @@ public:
 
     /// View at the single (device) memory allocation of the container
     VECMEM_HOST_AND_DEVICE
-    const data::vector_view<char>& payload() const;
+    const memory_view_type& payload() const;
 
     /// View at the memory that describes the layout of the container
     VECMEM_HOST_AND_DEVICE
-    const data::vector_view<char>& layout() const;
+    const memory_view_type& layout() const;
     /// View at the memory that describes the layout of the container (in host
     /// accessible memory)
     VECMEM_HOST_AND_DEVICE
-    const data::vector_view<char>& host_layout() const;
+    const memory_view_type& host_layout() const;
 
 protected:
     /// Maximum capacity of the container
@@ -143,13 +145,13 @@ protected:
     view_tuple_type m_views;
 
     /// View into the single (device) memory allocation for the "payload"
-    data::vector_view<char> m_payload;
+    memory_view_type m_payload;
 
     /// View into the memory that describes the layout of the container
-    data::vector_view<char> m_layout;
+    memory_view_type m_layout;
     /// View into the memory that describes the layout of the container (in host
     /// accessible memory)
-    data::vector_view<char> m_host_layout;
+    memory_view_type m_host_layout;
 
 };  // class view
 

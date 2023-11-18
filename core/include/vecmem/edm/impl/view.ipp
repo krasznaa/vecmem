@@ -108,21 +108,24 @@ view<schema<VARTYPES...>>::variables() const {
 }
 
 template <typename... VARTYPES>
-VECMEM_HOST_AND_DEVICE const data::vector_view<char>&
+VECMEM_HOST_AND_DEVICE const typename view<
+    schema<VARTYPES...>>::memory_view_type&
 view<schema<VARTYPES...>>::payload() const {
 
     return m_payload;
 }
 
 template <typename... VARTYPES>
-VECMEM_HOST_AND_DEVICE const data::vector_view<char>&
+VECMEM_HOST_AND_DEVICE const typename view<
+    schema<VARTYPES...>>::memory_view_type&
 view<schema<VARTYPES...>>::layout() const {
 
     return m_layout;
 }
 
 template <typename... VARTYPES>
-VECMEM_HOST_AND_DEVICE const data::vector_view<char>&
+VECMEM_HOST_AND_DEVICE const typename view<
+    schema<VARTYPES...>>::memory_view_type&
 view<schema<VARTYPES...>>::host_layout() const {
 
     return m_host_layout;

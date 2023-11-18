@@ -28,7 +28,7 @@ struct data_type {
 
 template <typename TYPE>
 struct data_type<type::jagged_vector<TYPE>> {
-    using type = data::jagged_vector_data<TYPE>;
+    using type = vecmem::data::jagged_vector_data<TYPE>;
 };  // struct data_type
 
 template <typename TYPE>
