@@ -96,7 +96,7 @@ VECMEM_HOST void buffer<schema<VARTYPES...>>::setup_fixed(
         payload_ptrs;
 
     // Allocate memory for fixed sized variables.
-    std::tie(m_memory, std::ignore, std::get<INDICES>(layout_ptrs)...,
+    std::tie(m_memory, std::get<INDICES>(layout_ptrs)...,
              std::get<INDICES>(payload_ptrs)...) =
         vecmem::details::aligned_multiple_placement<
             typename details::view_type<VARTYPES>::layout_type...,
@@ -116,8 +116,7 @@ VECMEM_HOST void buffer<schema<VARTYPES...>>::setup_fixed(
     if (host_mr != nullptr) {
 
         // Allocate memory for just the layout in host memory.
-        std::tie(m_host_memory, std::ignore,
-                 std::get<INDICES>(host_layout_ptrs)...) =
+        std::tie(m_host_memory, std::get<INDICES>(host_layout_ptrs)...) =
             vecmem::details::aligned_multiple_placement<
                 typename details::view_type<VARTYPES>::layout_type...>(
                 *host_mr,
@@ -170,7 +169,7 @@ VECMEM_HOST void buffer<schema<VARTYPES...>>::setup_resizable(
         view_type::m_size_size = static_cast<size_type>(
             (details::buffer_alloc<VARTYPES>::layout_size(capacities) + ...));
         // Perform the allocation.
-        std::tie(m_memory, std::ignore, std::get<INDICES>(sizes_ptrs)...,
+        std::tie(m_memory, std::get<INDICES>(sizes_ptrs)...,
                  std::get<INDICES>(layout_ptrs)...,
                  std::get<INDICES>(payload_ptrs)...) =
             vecmem::details::aligned_multiple_placement<
@@ -188,8 +187,7 @@ VECMEM_HOST void buffer<schema<VARTYPES...>>::setup_resizable(
         // point to.
         view_type::m_size_size = 1u;
         // Perform the allocation.
-        std::tie(m_memory, std::ignore, view_type::m_size,
-                 std::get<INDICES>(layout_ptrs)...,
+        std::tie(m_memory, view_type::m_size, std::get<INDICES>(layout_ptrs)...,
                  std::get<INDICES>(payload_ptrs)...) =
             vecmem::details::aligned_multiple_placement<
                 typename view_type::size_type,
@@ -214,8 +212,7 @@ VECMEM_HOST void buffer<schema<VARTYPES...>>::setup_resizable(
     if (host_mr != nullptr) {
 
         // Allocate memory for just the layout in host memory.
-        std::tie(m_host_memory, std::ignore,
-                 std::get<INDICES>(host_layout_ptrs)...) =
+        std::tie(m_host_memory, std::get<INDICES>(host_layout_ptrs)...) =
             vecmem::details::aligned_multiple_placement<
                 typename details::view_type<VARTYPES>::layout_type...>(
                 *host_mr,
