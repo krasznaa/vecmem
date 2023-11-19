@@ -11,7 +11,9 @@
 #include "vecmem/edm/details/tuple_traits.hpp"
 #include "vecmem/edm/details/view_traits.hpp"
 #include "vecmem/edm/schema.hpp"
+#include "vecmem/edm/view.hpp"
 #include "vecmem/memory/unique_ptr.hpp"
+#include "vecmem/utils/types.hpp"
 
 // System include(s).
 #include <numeric>
@@ -21,27 +23,27 @@
 
 namespace vecmem::edm::details {
 
-/// @name Traits for making allocations inside of buffers
+/// @name Traits used for making allocations inside of buffers
 /// @{
 
 template <typename TYPE>
-struct buffer_alloc {};  // struct buffer_alloc
+struct buffer_alloc;
 
 template <typename TYPE>
 struct buffer_alloc<type::scalar<TYPE> > {
     /// The number of @c TYPE elements to allocate for the payload
     template <typename SIZE_TYPE = std::size_t>
-    static std::size_t payload_size(const std::vector<SIZE_TYPE>&) {
+    VECMEM_HOST static std::size_t payload_size(const std::vector<SIZE_TYPE>&) {
         return 1u;
     }
     /// The number of "layout meta-objects" to allocate for the payload
     template <typename SIZE_TYPE = std::size_t>
-    static std::size_t layout_size(const std::vector<SIZE_TYPE>&) {
+    VECMEM_HOST static std::size_t layout_size(const std::vector<SIZE_TYPE>&) {
         return 0u;
     }
     /// Construct a view for a scalar variable.
     template <typename SIZE_TYPE = std::size_t>
-    static typename view_type<type::scalar<TYPE> >::type make_view(
+    VECMEM_HOST static typename view_type<type::scalar<TYPE> >::type make_view(
         const std::vector<SIZE_TYPE>&, unsigned int*,
         typename view_type<type::scalar<TYPE> >::layout_ptr,
         typename view_type<type::scalar<TYPE> >::layout_ptr,
@@ -54,17 +56,18 @@ template <typename TYPE>
 struct buffer_alloc<type::vector<TYPE> > {
     /// The number of @c TYPE elements to allocate for the payload
     template <typename SIZE_TYPE = std::size_t>
-    static std::size_t payload_size(const std::vector<SIZE_TYPE>& sizes) {
+    VECMEM_HOST static std::size_t payload_size(
+        const std::vector<SIZE_TYPE>& sizes) {
         return sizes.size();
     }
     /// The number of "layout meta-objects" to allocate for the payload
     template <typename SIZE_TYPE = std::size_t>
-    static std::size_t layout_size(const std::vector<SIZE_TYPE>&) {
+    VECMEM_HOST static std::size_t layout_size(const std::vector<SIZE_TYPE>&) {
         return 0u;
     }
     /// Construct a view for a vector variable.
     template <typename SIZE_TYPE = std::size_t>
-    static typename view_type<type::vector<TYPE> >::type make_view(
+    VECMEM_HOST static typename view_type<type::vector<TYPE> >::type make_view(
         const std::vector<SIZE_TYPE>& capacity, unsigned int* size,
         typename view_type<type::vector<TYPE> >::layout_ptr,
         typename view_type<type::vector<TYPE> >::layout_ptr,
@@ -80,18 +83,21 @@ template <typename TYPE>
 struct buffer_alloc<type::jagged_vector<TYPE> > {
     /// The number of @c TYPE elements to allocate for the payload
     template <typename SIZE_TYPE = std::size_t>
-    static std::size_t payload_size(const std::vector<SIZE_TYPE>& sizes) {
+    VECMEM_HOST static std::size_t payload_size(
+        const std::vector<SIZE_TYPE>& sizes) {
         return std::accumulate(sizes.begin(), sizes.end(),
                                static_cast<std::size_t>(0));
     }
     /// The number of "layout meta-objects" to allocate for the payload
     template <typename SIZE_TYPE = std::size_t>
-    static std::size_t layout_size(const std::vector<SIZE_TYPE>& sizes) {
+    VECMEM_HOST static std::size_t layout_size(
+        const std::vector<SIZE_TYPE>& sizes) {
         return sizes.size();
     }
     /// Construct a view for a jagged vector variable.
     template <typename SIZE_TYPE = std::size_t>
-    static typename view_type<type::jagged_vector<TYPE> >::type make_view(
+    VECMEM_HOST static typename view_type<type::jagged_vector<TYPE> >::type
+    make_view(
         const std::vector<SIZE_TYPE>& capacities, unsigned int* sizes,
         typename view_type<type::jagged_vector<TYPE> >::layout_ptr layout,
         typename view_type<type::jagged_vector<TYPE> >::layout_ptr host_layout,
@@ -121,9 +127,9 @@ struct buffer_alloc<type::jagged_vector<TYPE> > {
 
 /// @}
 
-/// Helper function for @c vecmem::edm::details::make_buffer_views
+/// Function constructing fixed size view objects for @c vecmem::edm::buffer
 template <typename SIZE_TYPE, typename... TYPES, std::size_t... INDICES>
-auto make_buffer_views_impl(
+VECMEM_HOST auto make_buffer_views(
     const std::vector<SIZE_TYPE>& sizes,
     const std::tuple<typename view_type<TYPES>::layout_ptr...>& layouts,
     const std::tuple<typename view_type<TYPES>::layout_ptr...>& host_layouts,
@@ -135,22 +141,9 @@ auto make_buffer_views_impl(
         std::get<INDICES>(host_layouts), std::get<INDICES>(payloads))...);
 }
 
-/// Function constructing fixed size view objects for @c vecmem::edm::buffer
-template <typename SIZE_TYPE, typename... TYPES>
-auto make_buffer_views(
-    const std::vector<SIZE_TYPE>& sizes,
-    const std::tuple<typename view_type<TYPES>::layout_ptr...>& layouts,
-    const std::tuple<typename view_type<TYPES>::layout_ptr...>& host_layouts,
-    const std::tuple<typename view_type<TYPES>::payload_ptr...>& payloads) {
-
-    return make_buffer_views_impl<SIZE_TYPE, TYPES...>(
-        sizes, layouts, host_layouts, payloads,
-        std::index_sequence_for<TYPES...>());
-}
-
-/// Helper function for @c vecmem::edm::details::make_buffer_views
+/// Function constructing resizable view objects for @c vecmem::edm::buffer
 template <typename SIZE_TYPE, typename... TYPES, std::size_t... INDICES>
-auto make_buffer_views_impl(
+VECMEM_HOST auto make_buffer_views(
     const std::vector<SIZE_TYPE>& capacities,
     const std::tuple<typename view_type<TYPES>::size_ptr...>& sizes,
     const std::tuple<typename view_type<TYPES>::layout_ptr...>& layouts,
@@ -177,47 +170,109 @@ auto make_buffer_views_impl(
         std::get<INDICES>(payloads))...);
 }
 
-/// Function constructing resizable view objects for @c vecmem::edm::buffer
-template <typename SIZE_TYPE, typename... TYPES>
-auto make_buffer_views(
-    const std::vector<SIZE_TYPE>& capacities,
-    const std::tuple<typename view_type<TYPES>::size_ptr...>& sizes,
-    const std::tuple<typename view_type<TYPES>::layout_ptr...>& layouts,
-    const std::tuple<typename view_type<TYPES>::layout_ptr...>& host_layouts,
-    const std::tuple<typename view_type<TYPES>::payload_ptr...>& payloads) {
-
-    return make_buffer_views_impl<SIZE_TYPE, TYPES...>(
-        capacities, sizes, layouts, host_layouts, payloads,
-        std::index_sequence_for<TYPES...>());
-}
-
-template <typename... TYPES>
-auto find_size_pointer_impl(
-    const std::tuple<typename view_type<TYPES>::size_ptr...>&,
-    std::index_sequence<>) {
-
-    return static_cast<unsigned int*>(nullptr);
-}
-
+/// Function finding the first non-nullptr size pointer in a tuple.
 template <typename... TYPES, std::size_t INDEX, std::size_t... INDICES>
-auto find_size_pointer_impl(
+VECMEM_HOST constexpr typename view<schema<TYPES...> >::size_pointer
+find_size_pointer(
     const std::tuple<typename view_type<TYPES>::size_ptr...>& sizes,
     std::index_sequence<INDEX, INDICES...>) {
 
-    if (std::get<INDEX>(sizes) != nullptr) {
-        return std::get<INDEX>(sizes);
+    auto ptr = std::get<INDEX>(sizes);
+    if (ptr != nullptr) {
+        return ptr;
     } else {
-        return find_size_pointer_impl<TYPES...>(
-            sizes, std::index_sequence<INDICES...>());
+        if constexpr (sizeof...(INDICES) > 0) {
+            return find_size_pointer<TYPES...>(
+                sizes, std::index_sequence<INDICES...>());
+        } else {
+            return nullptr;
+        }
     }
 }
 
-/// Function finding the first non-nullptr size pointer in a tuple.
+/// Generic function finding the first non-nullptr pointer in a tuple.
+template <typename... TYPES, std::size_t INDEX, std::size_t... INDICES>
+VECMEM_HOST constexpr void* find_first_pointer(
+    const std::tuple<TYPES...>& pointers,
+    std::index_sequence<INDEX, INDICES...>) {
+
+    auto ptr = std::get<INDEX>(pointers);
+    if (ptr != nullptr) {
+        return ptr;
+    } else {
+        if constexpr (sizeof...(INDICES) > 0) {
+            return find_first_pointer<TYPES...>(
+                pointers, std::index_sequence<INDICES...>());
+        } else {
+            return nullptr;
+        }
+    }
+}
+
+/// Generic function finding the last non-nullptr pointer in a tuple.
+template <typename... TYPES, std::size_t INDEX, std::size_t... INDICES>
+VECMEM_HOST constexpr void* find_last_pointer(
+    const std::tuple<TYPES...>& pointers,
+    const std::array<std::size_t, sizeof...(TYPES)>& sizes,
+    std::index_sequence<INDEX, INDICES...>) {
+
+    auto ptr = std::get<sizeof...(TYPES) - 1 - INDEX>(pointers);
+    if (ptr != nullptr) {
+        return ptr + std::get<sizeof...(TYPES) - 1 - INDEX>(sizes);
+    } else {
+        if constexpr (sizeof...(INDICES) > 0) {
+            return find_last_pointer<TYPES...>(
+                pointers, sizes, std::index_sequence<INDICES...>());
+        } else {
+            return nullptr;
+        }
+    }
+}
+
+/// Function creating a view for the layout of a buffer.
 template <typename... TYPES>
-auto find_size_pointer(
-    const std::tuple<typename view_type<TYPES>::size_ptr...>& sizes) {
-    return find_size_pointer_impl<TYPES...>(
-        sizes, std::index_sequence_for<TYPES...>());
+VECMEM_HOST constexpr typename view<schema<TYPES...> >::memory_view_type
+find_layout_view(
+    const std::tuple<typename view_type<TYPES>::layout_ptr...>& layouts,
+    const std::array<std::size_t, sizeof...(TYPES)>& sizes) {
+
+    // The result type.
+    using result_type = typename view<schema<TYPES...> >::memory_view_type;
+
+    // Find the first non-zero pointer.
+    typename result_type::pointer ptr =
+        reinterpret_cast<typename result_type::pointer>(
+            find_first_pointer(layouts, std::index_sequence_for<TYPES...>()));
+    // Find the last non-zero pointer.
+    typename result_type::pointer end_ptr =
+        reinterpret_cast<typename result_type::pointer>(find_last_pointer(
+            layouts, sizes, std::index_sequence_for<TYPES...>()));
+
+    // Construct the result.
+    return {static_cast<typename result_type::size_type>(end_ptr - ptr), ptr};
+}
+
+/// Function creating a view of the payload of a buffer
+template <typename... TYPES>
+VECMEM_HOST constexpr typename view<schema<TYPES...> >::memory_view_type
+find_payload_view(
+    const std::tuple<typename view_type<TYPES>::payload_ptr...>& payloads,
+    const std::array<std::size_t, sizeof...(TYPES)>& sizes) {
+
+    // The result type.
+    using result_type = typename view<schema<TYPES...> >::memory_view_type;
+
+    // Find the first non-zero pointer.
+    typename result_type::pointer ptr =
+        reinterpret_cast<typename result_type::pointer>(
+            find_first_pointer(payloads, std::index_sequence_for<TYPES...>()));
+    // Find the last non-zero pointer.
+    typename result_type::pointer end_ptr =
+        reinterpret_cast<typename result_type::pointer>(find_last_pointer(
+            payloads, sizes, std::index_sequence_for<TYPES...>()));
+
+    // Construct the result.
+    return {static_cast<typename result_type::size_type>(end_ptr - ptr), ptr};
 }
 
 }  // namespace vecmem::edm::details

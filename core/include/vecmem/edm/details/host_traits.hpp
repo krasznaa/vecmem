@@ -70,7 +70,7 @@ struct host_type_at {
 /// @{
 
 template <typename TYPE>
-struct host_alloc {};
+struct host_alloc;
 
 template <typename TYPE>
 struct host_alloc<type::scalar<TYPE> > {

@@ -13,6 +13,7 @@
 #include "vecmem/edm/view.hpp"
 #include "vecmem/memory/memory_resource.hpp"
 #include "vecmem/memory/unique_ptr.hpp"
+#include "vecmem/utils/types.hpp"
 
 // System include(s).
 #include <type_traits>
@@ -22,25 +23,68 @@
 namespace vecmem {
 namespace edm {
 
-/// Generic buffer template
-template <typename DUMMY>
-class buffer {
-    /// Delete the constructor of this type
-    buffer() = delete;
-};
+/// Technical base type for @c buffer<schema<VARTYPES...>>
+template <typename T>
+class buffer;
 
-/// Base class for SoA buffers
+/// Buffer for a Struct-of-Arrays container
+///
+/// This type can be used to hold the memory of an entire SoA container in an
+/// efficient way. Allowing for block copies of the data between the host and
+/// a device.
+///
+/// The buffer holds on to either 1 or 2 blocks of memory.
+///   - Only one block is needed if:
+///      * The container doesn't have any jagged vector variables;
+///      * The main memory resource used by the buffer is host accessible.
+///   - If the container has at least one jagged vector variable and the main
+///     memory resource is not host accessible, then the buffer will hold on to
+///     two blocks of memory. One allocated on the device and one on the host.
+///
+/// The "main/device memory block" is structured as follows:
+///   - For a non-resizable buffer:
+///
+///   | Bytes | Description | Notes |
+///   |-------|-------------|-------|
+///   | `sizeof(vecmem::data::vector_view)` * number of "inner vectors" in all jagged vectors | Layout metadata of the jagged vectors | Pointed to by `vecmem::edm::view::layout()` |
+///   | Many | Payload of the buffer, with memory for all variables held by the container | Pointed to by `vecmem::edm::view::payload()` |
+///
+///   - For a resizable buffer without any jagged vector variables:
+///
+///   | Bytes | Description | Notes |
+///   |-------|-------------|-------|
+///   | `4`   | Size of all 1D vector variables in the container | Pointed to by `vecmem::edm::view::size_ptr()` |
+///   | Many  | Payload of the buffer, with memory for all variables held by the container | Pointed to by `vecmem::edm::view::payload()` |
+///
+///   - For a resizable buffer with at least one jagged vector variable:
+///
+///   | Bytes | Description | Notes |
+///   |-------|-------------|-------|
+///   | `4` * number of "inner vectors" in all jagged vectors | Individual "inner sizes" of the jagged vectors | Pointed to by `vecmem::edm::view::size_ptr()` |
+///   | `sizeof(vecmem::data::vector_view)` * number of "inner vectors" in all jagged vectors | Layout metadata of the jagged vectors | Pointed to by `vecmem::edm::view::layout()` |
+///   | Many | Payload of the buffer, with memory for all variables held by the container | Pointed to by `vecmem::edm::view::payload()` |
+///
+/// The "host memory block", if used holds the same layout data for the jagged
+/// vector variables as the "main memory block", just in a host-accessible
+/// location. This allocation is pointed to by
+/// `vecmem::edm::view::host_layout()`.
 ///
 /// @tparam ...VARTYPES The variable types to store in the buffer
 ///
 template <typename... VARTYPES>
 class buffer<schema<VARTYPES...>> : public view<schema<VARTYPES...>> {
 
-    // Make sure that all variable types are supported.
+    // Make sure that all variable types are supported. It needs to be possible
+    // to copy the contents of all variables with simple memory copies, and
+    // it has to be possible to trivially destruct all objects.
     static_assert(
         std::conjunction<
             std::is_trivially_destructible<typename VARTYPES::type>...>::value,
         "Unsupported variable type");
+    static_assert(std::conjunction<std::is_trivially_assignable<
+                      std::add_lvalue_reference_t<typename VARTYPES::type>,
+                      typename VARTYPES::type>...>::value,
+                  "Unsupported variable type");
 
 public:
     /// The schema describing the buffer's payload
@@ -56,10 +100,19 @@ public:
     /// @param mr       The memory resource to use for the allocation
     /// @param type     The type of the buffer (fixed or variable size)
     ///
+    VECMEM_HOST
     buffer(
         size_type capacity, memory_resource& mr,
         vecmem::data::buffer_type type = vecmem::data::buffer_type::fixed_size);
+
     /// Constructor for a 2D buffer
+    ///
+    /// Note that the inner sizes of the jagged vector variables are technically
+    /// allowed to be different. But this constructor sets them all up to have
+    /// the same inner capacities.
+    ///
+    /// The 1D vectors of the buffer are set up to be non-resizable, with their
+    /// sizes taken from @c capacities.size().
     ///
     /// @param capacities The capacities of the 1D/2D arrays in the buffer
     /// @param mr         The (main) memory resource to use for the allocation
@@ -70,7 +123,7 @@ public:
               std::enable_if_t<std::is_integral<SIZE_TYPE>::value &&
                                    std::is_unsigned<SIZE_TYPE>::value,
                                bool> = true>
-    buffer(
+    VECMEM_HOST buffer(
         const std::vector<SIZE_TYPE>& capacities, memory_resource& mr,
         memory_resource* host_mr = nullptr,
         vecmem::data::buffer_type type = vecmem::data::buffer_type::fixed_size);
@@ -78,14 +131,15 @@ public:
 private:
     /// Set up a fixed sized buffer
     template <typename SIZE_TYPE = std::size_t, std::size_t... INDICES>
-    void setup_fixed(const std::vector<SIZE_TYPE>& capacities,
-                     memory_resource& mr, memory_resource* host_mr,
-                     std::index_sequence<INDICES...>);
+    VECMEM_HOST void setup_fixed(const std::vector<SIZE_TYPE>& capacities,
+                                 memory_resource& mr, memory_resource* host_mr,
+                                 std::index_sequence<INDICES...>);
     /// Set up a resizable buffer
     template <typename SIZE_TYPE = std::size_t, std::size_t... INDICES>
-    void setup_resizable(const std::vector<SIZE_TYPE>& capacities,
-                         memory_resource& mr, memory_resource* host_mr,
-                         std::index_sequence<INDICES...>);
+    VECMEM_HOST void setup_resizable(const std::vector<SIZE_TYPE>& capacities,
+                                     memory_resource& mr,
+                                     memory_resource* host_mr,
+                                     std::index_sequence<INDICES...>);
 
     /// The full allocated block of (device) memory
     unique_alloc_ptr<char[]> m_memory;
@@ -103,7 +157,7 @@ private:
 /// @return A (possibly non-const) view into for the buffer
 ///
 template <typename... VARTYPES>
-edm::view<edm::schema<VARTYPES...>> get_data(
+VECMEM_HOST edm::view<edm::schema<VARTYPES...>> get_data(
     edm::buffer<edm::schema<VARTYPES...>>& buffer);
 
 /// Helper function for getting a (const) view for a buffer
@@ -113,7 +167,7 @@ edm::view<edm::schema<VARTYPES...>> get_data(
 /// @return A (const) view into for the buffer
 ///
 template <typename... VARTYPES>
-edm::view<
+VECMEM_HOST edm::view<
     edm::schema<typename edm::type::details::add_const<VARTYPES>::type...>>
 get_data(const edm::buffer<edm::schema<VARTYPES...>>& buffer);
 

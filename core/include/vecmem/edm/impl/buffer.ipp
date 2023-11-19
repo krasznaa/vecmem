@@ -13,7 +13,6 @@
 #include "vecmem/edm/details/view_traits.hpp"
 
 // System include(s).
-#include <iostream>
 #include <stdexcept>
 #include <tuple>
 #include <type_traits>
@@ -22,8 +21,9 @@ namespace vecmem {
 namespace edm {
 
 template <typename... VARTYPES>
-buffer<schema<VARTYPES...>>::buffer(size_type capacity, memory_resource& mr,
-                                    vecmem::data::buffer_type type)
+VECMEM_HOST buffer<schema<VARTYPES...>>::buffer(size_type capacity,
+                                                memory_resource& mr,
+                                                vecmem::data::buffer_type type)
     : view_type(capacity) {
 
     // Make sure that this constructor is not used for a container that has
@@ -53,10 +53,9 @@ template <typename SIZE_TYPE,
           std::enable_if_t<std::is_integral<SIZE_TYPE>::value &&
                                std::is_unsigned<SIZE_TYPE>::value,
                            bool>>
-buffer<schema<VARTYPES...>>::buffer(const std::vector<SIZE_TYPE>& capacities,
-                                    memory_resource& main_mr,
-                                    memory_resource* host_mr,
-                                    vecmem::data::buffer_type type)
+VECMEM_HOST buffer<schema<VARTYPES...>>::buffer(
+    const std::vector<SIZE_TYPE>& capacities, memory_resource& main_mr,
+    memory_resource* host_mr, vecmem::data::buffer_type type)
     : view_type(static_cast<size_type>(capacities.size())) {
 
     // Make sure that this constructor is only used for a container that has
@@ -82,7 +81,7 @@ buffer<schema<VARTYPES...>>::buffer(const std::vector<SIZE_TYPE>& capacities,
 
 template <typename... VARTYPES>
 template <typename SIZE_TYPE, std::size_t... INDICES>
-void buffer<schema<VARTYPES...>>::setup_fixed(
+VECMEM_HOST void buffer<schema<VARTYPES...>>::setup_fixed(
     const std::vector<SIZE_TYPE>& capacities, memory_resource& mr,
     memory_resource* host_mr, std::index_sequence<INDICES...>) {
 
@@ -96,89 +95,49 @@ void buffer<schema<VARTYPES...>>::setup_fixed(
     std::tuple<typename details::view_type<VARTYPES>::payload_ptr...>
         payload_ptrs;
 
-    // Return value for the main allocation command.
-    auto main_alloc_result =
-        std::tie(m_memory, std::ignore, std::get<INDICES>(layout_ptrs)...,
-                 std::get<INDICES>(payload_ptrs)...);
-
-    // Allocation sizes for the layouts and payloads.
-    const std::vector<std::size_t> layout_sizes = {
-        details::buffer_alloc<VARTYPES>::layout_size(capacities)...};
-    const std::vector<std::size_t> payload_sizes = {
-        details::buffer_alloc<VARTYPES>::payload_size(capacities)...};
-
     // Allocate memory for fixed sized variables.
-    main_alloc_result = vecmem::details::aligned_multiple_placement<
-        typename details::view_type<VARTYPES>::layout_type...,
-        typename details::view_type<VARTYPES>::payload_type...>(
-        mr, details::buffer_alloc<VARTYPES>::layout_size(capacities)...,
-        details::buffer_alloc<VARTYPES>::payload_size(capacities)...);
-
-    // Get the pointers for the typeless views.
-    char* const layout_begin =
-        reinterpret_cast<char*>(std::get<0>(layout_ptrs));
-    char* const layout_end = reinterpret_cast<char*>(
-        std::get<sizeof...(VARTYPES) - 1>(layout_ptrs) + layout_sizes.back());
-    char* const payload_begin =
-        reinterpret_cast<char*>(std::get<0>(payload_ptrs));
-    char* const payload_end = reinterpret_cast<char*>(
-        std::get<sizeof...(VARTYPES) - 1>(payload_ptrs) + payload_sizes.back());
+    std::tie(m_memory, std::ignore, std::get<INDICES>(layout_ptrs)...,
+             std::get<INDICES>(payload_ptrs)...) =
+        vecmem::details::aligned_multiple_placement<
+            typename details::view_type<VARTYPES>::layout_type...,
+            typename details::view_type<VARTYPES>::payload_type...>(
+            mr, details::buffer_alloc<VARTYPES>::layout_size(capacities)...,
+            details::buffer_alloc<VARTYPES>::payload_size(capacities)...);
 
     // Set the base class's memory views.
-    if ((layout_begin != nullptr) && (layout_end != nullptr) &&
-        (layout_begin < layout_end)) {
-        view_type::m_layout = {
-            static_cast<typename decltype(view_type::m_layout)::size_type>(
-                layout_end - layout_begin),
-            layout_begin};
-    }
-    if ((payload_begin != nullptr) && (payload_end != nullptr) &&
-        (payload_begin < payload_end)) {
-        view_type::m_payload = {
-            static_cast<typename decltype(view_type::m_payload)::size_type>(
-                payload_end - payload_begin),
-            payload_begin};
-    }
+    view_type::m_layout = details::find_layout_view<VARTYPES...>(
+        layout_ptrs,
+        {details::buffer_alloc<VARTYPES>::layout_size(capacities)...});
+    view_type::m_payload = details::find_payload_view<VARTYPES...>(
+        payload_ptrs,
+        {details::buffer_alloc<VARTYPES>::payload_size(capacities)...});
 
     // If requested, allocate host memory for the layouts.
     if (host_mr != nullptr) {
 
-        // Return value for the host allocation command, reusing the memory
-        // pointers from the main allocation.
-        auto host_alloc_result = std::tie(
-            m_host_memory, std::ignore, std::get<INDICES>(host_layout_ptrs)...);
-
         // Allocate memory for just the layout in host memory.
-        host_alloc_result = vecmem::details::aligned_multiple_placement<
-            typename details::view_type<VARTYPES>::layout_type...>(
-            *host_mr,
-            details::buffer_alloc<VARTYPES>::layout_size(capacities)...);
-
-        // Get the pointers for the typeless view.
-        char* const host_layout_begin =
-            reinterpret_cast<char*>(std::get<0>(host_layout_ptrs));
-        char* const host_layout_end = reinterpret_cast<char*>(
-            std::get<sizeof...(VARTYPES) - 1>(host_layout_ptrs) +
-            layout_sizes.back());
+        std::tie(m_host_memory, std::ignore,
+                 std::get<INDICES>(host_layout_ptrs)...) =
+            vecmem::details::aligned_multiple_placement<
+                typename details::view_type<VARTYPES>::layout_type...>(
+                *host_mr,
+                details::buffer_alloc<VARTYPES>::layout_size(capacities)...);
 
         // Set the base class's memory view.
-        if ((host_layout_begin != nullptr) && (host_layout_end != nullptr) &&
-            (host_layout_begin < host_layout_end)) {
-            view_type::m_host_layout = {
-                static_cast<typename decltype(view_type::m_layout)::size_type>(
-                    host_layout_end - host_layout_begin),
-                host_layout_begin};
-        }
+        view_type::m_host_layout = details::find_layout_view<VARTYPES...>(
+            host_layout_ptrs,
+            {details::buffer_alloc<VARTYPES>::layout_size(capacities)...});
     }
 
     // Initialize the views from all the raw pointers.
     view_type::m_views = details::make_buffer_views<SIZE_TYPE, VARTYPES...>(
-        capacities, layout_ptrs, host_layout_ptrs, payload_ptrs);
+        capacities, layout_ptrs, host_layout_ptrs, payload_ptrs,
+        std::index_sequence_for<VARTYPES...>{});
 }
 
 template <typename... VARTYPES>
 template <typename SIZE_TYPE, std::size_t... INDICES>
-void buffer<schema<VARTYPES...>>::setup_resizable(
+VECMEM_HOST void buffer<schema<VARTYPES...>>::setup_resizable(
     const std::vector<SIZE_TYPE>& capacities, memory_resource& mr,
     memory_resource* host_mr, std::index_sequence<INDICES...>) {
 
@@ -202,12 +161,6 @@ void buffer<schema<VARTYPES...>>::setup_resizable(
     std::tuple<typename details::view_type<VARTYPES>::payload_ptr...>
         payload_ptrs;
 
-    // Allocation sizes for the layouts and payloads.
-    const std::vector<std::size_t> layout_sizes = {
-        details::buffer_alloc<VARTYPES>::layout_size(capacities)...};
-    const std::vector<std::size_t> payload_sizes = {
-        details::buffer_alloc<VARTYPES>::payload_size(capacities)...};
-
     // Allocate memory for fixed sized variables. A little differently for
     // containers that have some jagged vectors, versus ones that only have
     // 1D vectors.
@@ -228,7 +181,8 @@ void buffer<schema<VARTYPES...>>::setup_resizable(
                 details::buffer_alloc<VARTYPES>::layout_size(capacities)...,
                 details::buffer_alloc<VARTYPES>::payload_size(capacities)...);
         // Point the base class at the size array.
-        view_type::m_size = details::find_size_pointer<VARTYPES...>(sizes_ptrs);
+        view_type::m_size = details::find_size_pointer<VARTYPES...>(
+            sizes_ptrs, std::index_sequence_for<VARTYPES...>{});
     } else {
         // Set the size of the array that the base class's size pointer will
         // point to.
@@ -248,31 +202,13 @@ void buffer<schema<VARTYPES...>>::setup_resizable(
         ((std::get<INDICES>(sizes_ptrs) = view_type::m_size), ...);
     }
 
-    // Get the pointers for the typeless views.
-    char* const layout_begin =
-        reinterpret_cast<char*>(std::get<0>(layout_ptrs));
-    char* const layout_end = reinterpret_cast<char*>(
-        std::get<sizeof...(VARTYPES) - 1>(layout_ptrs) + layout_sizes.back());
-    char* const payload_begin =
-        reinterpret_cast<char*>(std::get<0>(payload_ptrs));
-    char* const payload_end = reinterpret_cast<char*>(
-        std::get<sizeof...(VARTYPES) - 1>(payload_ptrs) + payload_sizes.back());
-
     // Set the base class's memory views.
-    if ((layout_begin != nullptr) && (layout_end != nullptr) &&
-        (layout_begin < layout_end)) {
-        view_type::m_layout = {
-            static_cast<typename decltype(view_type::m_layout)::size_type>(
-                layout_end - layout_begin),
-            layout_begin};
-    }
-    if ((payload_begin != nullptr) && (payload_end != nullptr) &&
-        (payload_begin < payload_end)) {
-        view_type::m_payload = {
-            static_cast<typename decltype(view_type::m_payload)::size_type>(
-                payload_end - payload_begin),
-            payload_begin};
-    }
+    view_type::m_layout = details::find_layout_view<VARTYPES...>(
+        layout_ptrs,
+        {details::buffer_alloc<VARTYPES>::layout_size(capacities)...});
+    view_type::m_payload = details::find_payload_view<VARTYPES...>(
+        payload_ptrs,
+        {details::buffer_alloc<VARTYPES>::payload_size(capacities)...});
 
     // If requested, allocate host memory for the layouts.
     if (host_mr != nullptr) {
@@ -285,39 +221,29 @@ void buffer<schema<VARTYPES...>>::setup_resizable(
                 *host_mr,
                 details::buffer_alloc<VARTYPES>::layout_size(capacities)...);
 
-        // Get the pointers for the typeless view.
-        char* const host_layout_begin =
-            reinterpret_cast<char*>(std::get<0>(host_layout_ptrs));
-        char* const host_layout_end = reinterpret_cast<char*>(
-            std::get<sizeof...(VARTYPES) - 1>(host_layout_ptrs) +
-            layout_sizes.back());
-
         // Set the base class's memory view.
-        if ((host_layout_begin != nullptr) && (host_layout_end != nullptr) &&
-            (host_layout_begin < host_layout_end)) {
-            view_type::m_host_layout = {
-                static_cast<typename decltype(view_type::m_layout)::size_type>(
-                    host_layout_end - host_layout_begin),
-                host_layout_begin};
-        }
+        view_type::m_host_layout = details::find_layout_view<VARTYPES...>(
+            host_layout_ptrs,
+            {details::buffer_alloc<VARTYPES>::layout_size(capacities)...});
     }
 
     // Initialize the views from all the raw pointers.
     view_type::m_views = details::make_buffer_views<SIZE_TYPE, VARTYPES...>(
-        capacities, sizes_ptrs, layout_ptrs, host_layout_ptrs, payload_ptrs);
+        capacities, sizes_ptrs, layout_ptrs, host_layout_ptrs, payload_ptrs,
+        std::index_sequence_for<VARTYPES...>{});
 }
 
 }  // namespace edm
 
 template <typename... VARTYPES>
-edm::view<edm::schema<VARTYPES...>> get_data(
+VECMEM_HOST edm::view<edm::schema<VARTYPES...>> get_data(
     edm::buffer<edm::schema<VARTYPES...>>& buffer) {
 
     return buffer;
 }
 
 template <typename... VARTYPES>
-edm::view<
+VECMEM_HOST edm::view<
     edm::schema<typename edm::type::details::add_const<VARTYPES>::type...>>
 get_data(const edm::buffer<edm::schema<VARTYPES...>>& buffer) {
 
