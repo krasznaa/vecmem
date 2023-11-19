@@ -15,6 +15,7 @@
 #include "vecmem/edm/details/view_traits.hpp"
 
 // System include(s).
+#include <tuple>
 #include <type_traits>
 
 namespace vecmem {
@@ -66,18 +67,33 @@ VECMEM_HOST void host<schema<VARTYPES...>>::reserve(std::size_t size) {
 
 template <typename... VARTYPES>
 template <std::size_t INDEX>
-VECMEM_HOST auto host<schema<VARTYPES...>>::get() ->
-    typename std::tuple_element<INDEX, tuple_type>::type& {
+VECMEM_HOST typename details::host_type_at<INDEX, VARTYPES...>::return_type
+host<schema<VARTYPES...>>::get() {
 
-    return std::get<INDEX>(m_data);
+    // For scalar types we don't return the smart pointer, but rather a
+    // reference to the scalar held by the smart pointer.
+    if constexpr (type::details::is_scalar<typename std::tuple_element<
+                      INDEX, std::tuple<VARTYPES...>>::type>::value) {
+        return *(std::get<INDEX>(m_data));
+    } else {
+        return std::get<INDEX>(m_data);
+    }
 }
 
 template <typename... VARTYPES>
 template <std::size_t INDEX>
-VECMEM_HOST auto host<schema<VARTYPES...>>::get() const -> const
-    typename std::tuple_element<INDEX, tuple_type>::type& {
+VECMEM_HOST
+    typename details::host_type_at<INDEX, VARTYPES...>::const_return_type
+    host<schema<VARTYPES...>>::get() const {
 
-    return std::get<INDEX>(m_data);
+    // For scalar types we don't return the smart pointer, but rather a
+    // reference to the scalar held by the smart pointer.
+    if constexpr (type::details::is_scalar<typename std::tuple_element<
+                      INDEX, std::tuple<VARTYPES...>>::type>::value) {
+        return *(std::get<INDEX>(m_data));
+    } else {
+        return std::get<INDEX>(m_data);
+    }
 }
 
 template <typename... VARTYPES>
@@ -110,9 +126,9 @@ VECMEM_HOST memory_resource& host<schema<VARTYPES...>>::resource() const {
 ///
 template <typename TYPE>
 VECMEM_HOST typename edm::details::view_type<edm::type::scalar<TYPE>>::type
-get_data(unique_obj_ptr<TYPE>& obj) {
+get_data(TYPE& obj) {
 
-    return obj.get();
+    return &obj;
 }
 
 /// Helper function terminal node
@@ -171,9 +187,9 @@ VECMEM_HOST edm::data<edm::schema<VARTYPES...>> get_data(
 template <typename TYPE>
 VECMEM_HOST typename edm::details::view_type<
     edm::type::scalar<typename std::add_const<TYPE>::type>>::type
-get_data(const unique_obj_ptr<TYPE>& obj) {
+get_data(const TYPE& obj) {
 
-    return obj.get();
+    return &obj;
 }
 
 /// Helper function terminal node

@@ -70,11 +70,13 @@ public:
 
     /// Get the vector of a specific variable (non-const)
     template <std::size_t INDEX>
-    VECMEM_HOST typename std::tuple_element<INDEX, tuple_type>::type& get();
+    VECMEM_HOST typename details::host_type_at<INDEX, VARTYPES...>::return_type
+    get();
     /// Get the vector of a specific variable (const)
     template <std::size_t INDEX>
-    VECMEM_HOST const typename std::tuple_element<INDEX, tuple_type>::type&
-    get() const;
+    VECMEM_HOST
+        typename details::host_type_at<INDEX, VARTYPES...>::const_return_type
+        get() const;
 
     /// @}
 

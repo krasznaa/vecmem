@@ -86,6 +86,8 @@ struct is_jagged_vector<type::jagged_vector<TYPE> > {
 }  // namespace details
 }  // namespace type
 
+namespace details {
+
 /// @name Trait(s) making an entire schema into a constant one
 /// @{
 
@@ -102,5 +104,6 @@ struct add_const<schema<VARTYPES...> > {
 
 /// @}
 
+}  // namespace details
 }  // namespace edm
 }  // namespace vecmem

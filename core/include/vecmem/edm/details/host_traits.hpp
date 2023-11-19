@@ -17,6 +17,7 @@
 // System include(s).
 #include <stdexcept>
 #include <tuple>
+#include <type_traits>
 #include <utility>
 
 namespace vecmem::edm::details {
@@ -28,22 +29,40 @@ template <typename TYPE>
 struct host_type {
     struct UNKNOWN_TYPE {};
     using type = UNKNOWN_TYPE;
+    using return_type = UNKNOWN_TYPE;
+    using const_return_type = UNKNOWN_TYPE;
 };  // struct host_type
 
 template <typename TYPE>
 struct host_type<type::scalar<TYPE> > {
     using type = unique_obj_ptr<TYPE>;
+    using return_type = TYPE&;
+    using const_return_type = std::add_const_t<TYPE>&;
 };  // struct host_type
 
 template <typename TYPE>
 struct host_type<type::vector<TYPE> > {
     using type = vector<TYPE>;
+    using return_type = type&;
+    using const_return_type = std::add_const_t<type>&;
 };  // struct host_type
 
 template <typename TYPE>
 struct host_type<type::jagged_vector<TYPE> > {
     using type = jagged_vector<TYPE>;
+    using return_type = type&;
+    using const_return_type = std::add_const_t<type>&;
 };  // struct host_type
+
+template <std::size_t INDEX, typename... VARTYPES>
+struct host_type_at {
+    using type = typename host_type<typename std::tuple_element<
+        INDEX, std::tuple<VARTYPES...> >::type>::type;
+    using return_type = typename host_type<typename std::tuple_element<
+        INDEX, std::tuple<VARTYPES...> >::type>::return_type;
+    using const_return_type = typename host_type<typename std::tuple_element<
+        INDEX, std::tuple<VARTYPES...> >::type>::const_return_type;
+};  // struct host_type_at
 
 /// @}
 

@@ -74,11 +74,14 @@ public:
 
     /// Get a specific variable (non-const)
     template <std::size_t INDEX>
-    VECMEM_HOST_AND_DEVICE details::tuple_element_t<INDEX, tuple_type>& get();
+    VECMEM_HOST_AND_DEVICE
+        typename details::device_type_at<INDEX, VARTYPES...>::return_type
+        get();
     /// Get a specific variable (const)
     template <std::size_t INDEX>
-    VECMEM_HOST_AND_DEVICE const details::tuple_element_t<INDEX, tuple_type>&
-    get() const;
+    VECMEM_HOST_AND_DEVICE
+        typename details::device_type_at<INDEX, VARTYPES...>::const_return_type
+        get() const;
 
     /// @}
 

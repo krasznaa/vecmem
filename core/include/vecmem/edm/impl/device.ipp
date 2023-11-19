@@ -93,18 +93,22 @@ VECMEM_HOST_AND_DEVICE auto device<schema<VARTYPES...>>::push_back_default()
 
 template <typename... VARTYPES>
 template <std::size_t INDEX>
-VECMEM_HOST_AND_DEVICE auto device<schema<VARTYPES...>>::get()
-    -> details::tuple_element_t<INDEX, tuple_type>& {
+VECMEM_HOST_AND_DEVICE
+    typename details::device_type_at<INDEX, VARTYPES...>::return_type
+    device<schema<VARTYPES...>>::get() {
 
-    return details::get<INDEX>(m_data);
+    return details::device_get<details::tuple_element_t<
+        INDEX, details::tuple<VARTYPES...>>>::get(details::get<INDEX>(m_data));
 }
 
 template <typename... VARTYPES>
 template <std::size_t INDEX>
-VECMEM_HOST_AND_DEVICE auto device<schema<VARTYPES...>>::get() const
-    -> const details::tuple_element_t<INDEX, tuple_type>& {
+VECMEM_HOST_AND_DEVICE
+    typename details::device_type_at<INDEX, VARTYPES...>::const_return_type
+    device<schema<VARTYPES...>>::get() const {
 
-    return details::get<INDEX>(m_data);
+    return details::device_get<details::tuple_element_t<
+        INDEX, details::tuple<VARTYPES...>>>::get(details::get<INDEX>(m_data));
 }
 
 template <typename... VARTYPES>

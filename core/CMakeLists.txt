@@ -76,8 +76,6 @@ vecmem_add_library( vecmem_core core
    "include/vecmem/edm/view.hpp"
    "include/vecmem/edm/impl/view.ipp"
    "include/vecmem/edm/schema.hpp"
-   "include/vecmem/edm/details/accessor_device_traits.hpp"
-   "include/vecmem/edm/details/accessor_host_traits.hpp"
    "include/vecmem/edm/details/buffer_traits.hpp"
    "include/vecmem/edm/details/data_traits.hpp"
    "include/vecmem/edm/details/device_traits.hpp"

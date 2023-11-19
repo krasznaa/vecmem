@@ -28,22 +28,77 @@ template <typename TYPE>
 struct device_type {
     struct UNKNOWN_TYPE {};
     using type = UNKNOWN_TYPE;
+    using return_type = UNKNOWN_TYPE;
+    using const_return_type = UNKNOWN_TYPE;
 };  // struct device_type
 
 template <typename TYPE>
 struct device_type<type::scalar<TYPE>> {
     using type = TYPE*;
+    using return_type = TYPE&;
+    using const_return_type = std::add_const_t<TYPE>&;
 };  // struct device_type
 
 template <typename TYPE>
 struct device_type<type::vector<TYPE>> {
     using type = device_vector<TYPE>;
+    using return_type = type&;
+    using const_return_type = std::add_const_t<type>&;
 };  // struct device_type
 
 template <typename TYPE>
 struct device_type<type::jagged_vector<TYPE>> {
     using type = jagged_device_vector<TYPE>;
+    using return_type = type&;
+    using const_return_type = std::add_const_t<type>&;
 };  // struct device_type
+
+template <std::size_t INDEX, typename... VARTYPES>
+struct device_type_at {
+    using type = typename device_type<
+        details::tuple_element_t<INDEX, details::tuple<VARTYPES...>>>::type;
+    using return_type = typename device_type<details::tuple_element_t<
+        INDEX, details::tuple<VARTYPES...>>>::return_type;
+    using const_return_type = typename device_type<details::tuple_element_t<
+        INDEX, details::tuple<VARTYPES...>>>::const_return_type;
+};  // struct device_type_at
+
+/// @}
+
+/// @name Helper traits for the @c vecmem::edm::device::get functions
+/// @{
+
+template <typename TYPE>
+struct device_get {
+    VECMEM_HOST_AND_DEVICE
+    static constexpr typename device_type<TYPE>::return_type get(
+        typename device_type<TYPE>::type& variable) {
+
+        return variable;
+    }
+    VECMEM_HOST_AND_DEVICE
+    static constexpr typename device_type<TYPE>::const_return_type get(
+        const typename device_type<TYPE>::type& variable) {
+
+        return variable;
+    }
+};  // struct device_get
+
+template <typename TYPE>
+struct device_get<type::scalar<TYPE>> {
+    VECMEM_HOST_AND_DEVICE
+    static constexpr typename device_type<type::scalar<TYPE>>::return_type get(
+        typename device_type<type::scalar<TYPE>>::type& variable) {
+
+        return *variable;
+    }
+    VECMEM_HOST_AND_DEVICE
+    static constexpr typename device_type<type::scalar<TYPE>>::const_return_type
+    get(const typename device_type<type::scalar<TYPE>>::type& variable) {
+
+        return *variable;
+    }
+};  // struct device_get
 
 /// @}
 
