@@ -13,10 +13,11 @@ namespace vecmem {
 namespace edm {
 
 template <typename... VARTYPES>
-edm::data<edm::schema<VARTYPES...>>::data(size_type size, memory_resource& mr)
+VECMEM_HOST edm::data<edm::schema<VARTYPES...>>::data(size_type size,
+                                                      memory_resource& resource)
     : view_type(size),
-      m_data(std::make_tuple(
-          details::data_alloc<VARTYPES>::make_data(size, mr)...)) {
+      m_data{std::make_tuple(
+          details::data_alloc<VARTYPES>::make(size, resource)...)} {
 
     // Set up the views for the jagged vector variables correctly.
     details::data_view_assign<VARTYPES...>(
@@ -24,15 +25,15 @@ edm::data<edm::schema<VARTYPES...>>::data(size_type size, memory_resource& mr)
 }
 
 template <typename... VARTYPES>
-typename edm::data<edm::schema<VARTYPES...>>::data_tuple_type&
-edm::data<edm::schema<VARTYPES...>>::data_variables() {
+VECMEM_HOST auto edm::data<edm::schema<VARTYPES...>>::variables()
+    -> tuple_type& {
 
     return m_data;
 }
 
 template <typename... VARTYPES>
-const typename edm::data<edm::schema<VARTYPES...>>::data_tuple_type&
-edm::data<edm::schema<VARTYPES...>>::data_variables() const {
+VECMEM_HOST auto edm::data<edm::schema<VARTYPES...>>::variables() const
+    -> const tuple_type& {
 
     return m_data;
 }
@@ -40,16 +41,15 @@ edm::data<edm::schema<VARTYPES...>>::data_variables() const {
 }  // namespace edm
 
 template <typename... VARTYPES>
-edm::view<edm::schema<VARTYPES...>> get_data(
+VECMEM_HOST edm::view<edm::schema<VARTYPES...>>& get_data(
     edm::data<edm::schema<VARTYPES...>>& data) {
 
     return data;
 }
 
 template <typename... VARTYPES>
-edm::view<
-    edm::schema<typename edm::type::details::add_const<VARTYPES>::type...>>
-get_data(const edm::data<edm::schema<VARTYPES...>>& data) {
+VECMEM_HOST const edm::view<edm::schema<VARTYPES...>>& get_data(
+    const edm::data<edm::schema<VARTYPES...>>& data) {
 
     return data;
 }

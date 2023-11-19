@@ -21,6 +21,9 @@
 
 namespace vecmem::edm::details {
 
+/// @name Traits for the data types for the individual variables
+/// @{
+
 template <typename TYPE>
 struct data_type {
     using type = std::monostate;
@@ -31,36 +34,36 @@ struct data_type<type::jagged_vector<TYPE>> {
     using type = vecmem::data::jagged_vector_data<TYPE>;
 };  // struct data_type
 
+/// @}
+
+/// @name Traits for allocating data variables
+/// @{
+
 template <typename TYPE>
 struct data_alloc {
-    static typename data_type<TYPE>::type make_data(std::size_t,
-                                                    memory_resource&) {
+    static typename data_type<TYPE>::type make(std::size_t, memory_resource&) {
         return {};
     }
-    static void assign_data(typename view_type<TYPE>::type&,
-                            const typename data_type<TYPE>::type&) {}
 };  // struct data_alloc
 
 template <typename TYPE>
 struct data_alloc<type::jagged_vector<TYPE>> {
-    static typename data_type<type::jagged_vector<TYPE>>::type make_data(
+    static typename data_type<type::jagged_vector<TYPE>>::type make(
         std::size_t size, memory_resource& mr) {
         return {size, mr};
     }
-    static void assign_data(
-        typename view_type<type::jagged_vector<TYPE>>::type& view,
-        const typename data_type<type::jagged_vector<TYPE>>::type& data) {
-        view = data;
-    }
 };  // struct data_alloc
 
+/// @}
+
+/// Helper function assigning variable data objects to view objects
 template <typename... VARTYPES, std::size_t INDEX, std::size_t... Is>
 void data_view_assign(
     details::tuple<typename view_type<VARTYPES>::type...>& view,
     const std::tuple<typename data_type<VARTYPES>::type...>& data,
     std::index_sequence<INDEX, Is...>) {
 
-    // Resize this variable.
+    // Make the assignments just for jagged vector variables.
     if constexpr (type::details::is_jagged_vector<typename std::tuple_element<
                       INDEX, std::tuple<VARTYPES...>>::type>::value) {
         details::get<INDEX>(view) = std::get<INDEX>(data);

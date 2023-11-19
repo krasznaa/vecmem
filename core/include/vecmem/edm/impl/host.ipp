@@ -131,9 +131,8 @@ VECMEM_HOST void get_data_impl(edm::host<edm::schema<VARTYPES...>>& host,
     if constexpr (edm::type::details::is_jagged_vector<
                       typename std::tuple_element<
                           I, std::tuple<VARTYPES...>>::type>::value) {
-        std::get<I>(data.data_variables()) =
-            get_data(host.template get<I>(), &mr);
-        data.template get<I>() = get_data(std::get<I>(data.data_variables()));
+        std::get<I>(data.variables()) = get_data(host.template get<I>(), &mr);
+        data.template get<I>() = get_data(std::get<I>(data.variables()));
     } else {
         data.template get<I>() = get_data(host.template get<I>());
     }
@@ -197,9 +196,8 @@ VECMEM_HOST void get_data_impl(
     if constexpr (edm::type::details::is_jagged_vector<
                       typename std::tuple_element<
                           I, std::tuple<VARTYPES...>>::type>::value) {
-        std::get<I>(data.data_variables()) =
-            get_data(host.template get<I>(), &mr);
-        data.template get<I>() = get_data(std::get<I>(data.data_variables()));
+        std::get<I>(data.variables()) = get_data(host.template get<I>(), &mr);
+        data.template get<I>() = get_data(std::get<I>(data.variables()));
     } else {
         data.template get<I>() = get_data(host.template get<I>());
     }

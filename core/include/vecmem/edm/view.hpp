@@ -43,9 +43,6 @@ class view<schema<VARTYPES...>> {
     static_assert(sizeof...(VARTYPES) > 0, "Empty views are not supported");
 
 public:
-    /// @name Type declarations
-    /// @{
-
     /// The schema describing the container view
     using schema_type = schema<VARTYPES...>;
     /// Size type used for the container
@@ -67,8 +64,6 @@ public:
             vecmem::details::disjunction<std::is_const<
                 typename details::view_type<VARTYPES>::payload_type>...>::value,
             const char, char>::type>;
-
-    /// @}
 
     /// @name Constructors and assignment operators
     /// @{
