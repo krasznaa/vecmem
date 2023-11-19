@@ -6,6 +6,9 @@
  */
 #pragma once
 
+// Make Doxygen ignore the contents of this file.
+#ifndef VECMEM_DOXYGEN_IGNORE
+
 // Local include(s).
 #include "vecmem/edm/details/device_traits.hpp"
 #include "vecmem/edm/details/schema_traits.hpp"
@@ -24,32 +27,43 @@ VECMEM_HOST_AND_DEVICE device<schema<VARTYPES...>>::device(
       m_size(view.size_ptr()),
       m_data{view.variables()} {
 
-    // The container cannot be resizable if there are jagged vectors in it.
+    // The container cannot be resizable if there are jagged vectors in it. In
+    // such a case the jagged vectors themselves may be individually resizable,
+    // but not the entire container collectively.
     assert(!((m_size != nullptr) &&
              vecmem::details::disjunction<
                  type::details::is_jagged_vector<VARTYPES>...>::value));
+    // Check that all variables have the correct capacities.
+    assert(details::device_capacities_match<VARTYPES...>(
+        m_capacity, m_data, std::index_sequence_for<VARTYPES...>{}));
 }
 
 template <typename... VARTYPES>
-VECMEM_HOST_AND_DEVICE typename device<schema<VARTYPES...>>::size_type
-device<schema<VARTYPES...>>::size() const {
+VECMEM_HOST_AND_DEVICE auto device<schema<VARTYPES...>>::size() const
+    -> size_type {
+
+    // Check that all variables have the correct capacities.
+    assert(details::device_capacities_match<VARTYPES...>(
+        m_capacity, m_data, std::index_sequence_for<VARTYPES...>{}));
 
     return (m_size == nullptr ? m_capacity : *m_size);
 }
 
 template <typename... VARTYPES>
-VECMEM_HOST_AND_DEVICE typename device<schema<VARTYPES...>>::size_type
-device<schema<VARTYPES...>>::capacity() const {
+VECMEM_HOST_AND_DEVICE auto device<schema<VARTYPES...>>::capacity() const
+    -> size_type {
+
+    // Check that all variables have the correct capacities.
+    assert(details::device_capacities_match<VARTYPES...>(
+        m_capacity, m_data, std::index_sequence_for<VARTYPES...>{}));
 
     return m_capacity;
 }
 
 template <typename... VARTYPES>
-VECMEM_HOST_AND_DEVICE typename device<schema<VARTYPES...>>::size_type
-device<schema<VARTYPES...>>::push_back_default() {
+VECMEM_HOST_AND_DEVICE auto device<schema<VARTYPES...>>::push_back_default()
+    -> size_type {
 
-    // This can only be done on a resizable container.
-    assert(m_size != nullptr);
     // There must be no jagged vector variables for this to work.
     static_assert(!vecmem::details::disjunction<
                       type::details::is_jagged_vector<VARTYPES>...>::value,
@@ -58,6 +72,11 @@ device<schema<VARTYPES...>>::push_back_default() {
     static_assert(vecmem::details::disjunction<
                       type::details::is_vector<VARTYPES>...>::value,
                   "This function requires at least one vector variable.");
+    // This can only be done on a resizable container.
+    assert(m_size != nullptr);
+    // Check that all variables have the correct capacities.
+    assert(details::device_capacities_match<VARTYPES...>(
+        m_capacity, m_data, std::index_sequence_for<VARTYPES...>{}));
 
     // Increment the size of the container at first. So that we would "claim"
     // the index from other threads.
@@ -74,33 +93,30 @@ device<schema<VARTYPES...>>::push_back_default() {
 
 template <typename... VARTYPES>
 template <std::size_t INDEX>
-VECMEM_HOST_AND_DEVICE details::tuple_element_t<
-    INDEX, details::tuple<typename details::device_type<VARTYPES>::type...>>&
-device<schema<VARTYPES...>>::get() {
+VECMEM_HOST_AND_DEVICE auto device<schema<VARTYPES...>>::get()
+    -> details::tuple_element_t<INDEX, tuple_type>& {
 
     return details::get<INDEX>(m_data);
 }
 
 template <typename... VARTYPES>
 template <std::size_t INDEX>
-VECMEM_HOST_AND_DEVICE const details::tuple_element_t<
-    INDEX, details::tuple<typename details::device_type<VARTYPES>::type...>>&
-device<schema<VARTYPES...>>::get() const {
+VECMEM_HOST_AND_DEVICE auto device<schema<VARTYPES...>>::get() const
+    -> const details::tuple_element_t<INDEX, tuple_type>& {
 
     return details::get<INDEX>(m_data);
 }
 
 template <typename... VARTYPES>
-VECMEM_HOST_AND_DEVICE typename device<schema<VARTYPES...>>::device_tuple_type&
-device<schema<VARTYPES...>>::variables() {
+VECMEM_HOST_AND_DEVICE auto device<schema<VARTYPES...>>::variables()
+    -> tuple_type& {
 
     return m_data;
 }
 
 template <typename... VARTYPES>
-VECMEM_HOST_AND_DEVICE const typename device<
-    schema<VARTYPES...>>::device_tuple_type&
-device<schema<VARTYPES...>>::variables() const {
+VECMEM_HOST_AND_DEVICE auto device<schema<VARTYPES...>>::variables() const
+    -> const tuple_type& {
 
     return m_data;
 }
@@ -135,3 +151,5 @@ VECMEM_HOST_AND_DEVICE void device<schema<VARTYPES...>>::construct_vector(
 
 }  // namespace edm
 }  // namespace vecmem
+
+#endif  // not VECMEM_DOXYGEN_IGNORE

@@ -19,18 +19,24 @@
 namespace vecmem {
 namespace edm {
 
-template <typename DUMMY>
-class device {
-    /// Delete the constructor of this type
-    device() = delete;
-};
+/// Technical base type for @c device<schema<VARTYPES...>>
+template <typename T>
+class device;
 
-/// SoA device container type
+/// Structure-of-Arrays device container
+///
+/// This class implements a structure-of-arrays container using device vector
+/// types. Allowing the same operations on the individual variables that are
+/// available from @c vecmem::device_vector and @c vecmem::jagged_device_vector.
 ///
 /// @tparam ...VARTYPES The variable types stored in the container
 ///
 template <typename... VARTYPES>
 class device<schema<VARTYPES...>> {
+
+    // Sanity check(s).
+    static_assert(sizeof...(VARTYPES) > 0,
+                  "Empty device containers are not supported");
 
 public:
     /// The schema describing the device-accessible variables
@@ -40,12 +46,20 @@ public:
     /// Pointer type to the size of the container
     using size_pointer = typename view<schema_type>::size_pointer;
     /// The tuple type holding all of the the individual "device objects"
-    typedef details::tuple<typename details::device_type<VARTYPES>::type...>
-        device_tuple_type;
+    using tuple_type =
+        details::tuple<typename details::device_type<VARTYPES>::type...>;
+
+    /// @name Constructors and assignment operators
+    /// @{
 
     /// Constructor from an approptiate view
     VECMEM_HOST_AND_DEVICE
     device(const view<schema_type>& view);
+
+    /// @}
+
+    /// @name Function(s) meant for normal, client use
+    /// @{
 
     /// Get the size of the container
     VECMEM_HOST_AND_DEVICE
@@ -58,25 +72,27 @@ public:
     VECMEM_HOST_AND_DEVICE
     size_type push_back_default();
 
-    /// Get the vector of a specific variable (non-const)
+    /// Get a specific variable (non-const)
     template <std::size_t INDEX>
-    VECMEM_HOST_AND_DEVICE details::tuple_element_t<
-        INDEX,
-        details::tuple<typename details::device_type<VARTYPES>::type...>>&
-    get();
-    /// Get the vector of a specific variable (const)
+    VECMEM_HOST_AND_DEVICE details::tuple_element_t<INDEX, tuple_type>& get();
+    /// Get a specific variable (const)
     template <std::size_t INDEX>
-    VECMEM_HOST_AND_DEVICE const details::tuple_element_t<
-        INDEX,
-        details::tuple<typename details::device_type<VARTYPES>::type...>>&
+    VECMEM_HOST_AND_DEVICE const details::tuple_element_t<INDEX, tuple_type>&
     get() const;
+
+    /// @}
+
+    /// @name Function(s) meant for internal use by other VecMem types
+    /// @{
 
     /// Direct (non-const) access to the underlying tuple of variables
     VECMEM_HOST_AND_DEVICE
-    device_tuple_type& variables();
+    tuple_type& variables();
     /// Direct (const) access to the underlying tuple of variables
     VECMEM_HOST_AND_DEVICE
-    const device_tuple_type& variables() const;
+    const tuple_type& variables() const;
+
+    /// @}
 
 private:
     /// Construct a default element for every vector variable
@@ -87,9 +103,10 @@ private:
     VECMEM_HOST_AND_DEVICE void construct_default(size_type index,
                                                   std::index_sequence<>);
 
-    /// Default, no-op vector construction helper function
+    /// Default, no-op vector element construction helper function
     template <typename T>
     VECMEM_HOST_AND_DEVICE void construct_vector(size_type, T&);
+    /// Vector element constructor helper function
     template <typename T>
     VECMEM_HOST_AND_DEVICE void construct_vector(size_type index,
                                                  device_vector<T>& vec);
@@ -99,7 +116,7 @@ private:
     /// (Resizable) Size of the container described by this view
     size_pointer m_size = nullptr;
     /// The tuple holding all of the individual "device objects"
-    device_tuple_type m_data;
+    tuple_type m_data;
 
 };  // class device
 
