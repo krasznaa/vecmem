@@ -16,6 +16,7 @@
 #include "vecmem/utils/types.hpp"
 
 // System include(s).
+#include <array>
 #include <numeric>
 #include <tuple>
 #include <type_traits>
