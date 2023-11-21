@@ -77,7 +77,7 @@ public:
     /// @param size Optional pointer to the size of the container
     ///
     VECMEM_HOST_AND_DEVICE
-    view(size_type capacity, size_pointer size = nullptr);
+    view(size_type capacity, const memory_view_type& size = {0u, nullptr});
 
     /// Constructor from a (possibly/slightly) different view
     ///
@@ -131,9 +131,6 @@ public:
     /// @name Function(s) meant for normal, client use
     /// @{
 
-    /// Get the size of the container
-    VECMEM_HOST_AND_DEVICE
-    size_type size() const;
     /// Get the maximum capacity of the container
     VECMEM_HOST_AND_DEVICE
     size_type capacity() const;
@@ -151,22 +148,16 @@ public:
     /// @name Function(s) meant for internal use by other VecMem types
     /// @{
 
-    /// Get a pointer to the size(es) of the container (non-const)
-    VECMEM_HOST_AND_DEVICE
-    size_pointer size_ptr();
-    /// Get a pointer to the size(es) of the container (const)
-    VECMEM_HOST_AND_DEVICE
-    const_size_pointer size_ptr() const;
-    /// Size of the array that @c size_ptr() points to
-    VECMEM_HOST_AND_DEVICE
-    size_type size_ptr_size() const;
-
     /// Direct (non-const) access to the underlying tuple of views
     VECMEM_HOST_AND_DEVICE
     tuple_type& variables();
     /// Direct (const) access to the underlying tuple of views
     VECMEM_HOST_AND_DEVICE
     const tuple_type& variables() const;
+
+    /// View of the memory allocated for the container's size variable(s)
+    VECMEM_HOST_AND_DEVICE
+    const memory_view_type& size() const;
 
     /// View at the single (device) memory allocation of the container
     VECMEM_HOST_AND_DEVICE
@@ -185,12 +176,11 @@ public:
 protected:
     /// Maximum capacity of the container
     size_type m_capacity;
-    /// (Resizable) Size(s) of the container described by this view
-    size_pointer m_size;
-    /// Size of the array that @c m_size points to
-    size_type m_size_size;
     /// Views for the individual variables
     tuple_type m_views;
+
+    /// View into the memory allocated for the container's size variable(s)
+    memory_view_type m_size;
 
     /// View into the single (device) memory allocation for the "payload"
     memory_view_type m_payload;

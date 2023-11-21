@@ -173,9 +173,9 @@ public:
                           type::copy_type cptype = type::unknown) const;
 
     /// Helper function for getting the size of a resizable container
-    template <typename SCHEMA>
-    typename edm::view<SCHEMA>::size_type get_size(
-        const edm::view<SCHEMA>& data) const;
+    template <typename... VARTYPES>
+    typename edm::view<edm::schema<VARTYPES...>>::size_type get_size(
+        const edm::view<edm::schema<VARTYPES...>>& data) const;
 
     /// @}
 
@@ -213,13 +213,20 @@ private:
     template <typename... VARTYPES, std::size_t INDEX, std::size_t... Is>
     void memset_impl(edm::view<edm::schema<VARTYPES...>> data, int value,
                      std::index_sequence<INDEX, Is...>) const;
-    /// Implementation for the variadic @c copy function
+    /// Implementation for the variadic @c copy function (for the sizes)
     template <typename... VARTYPES1, typename... VARTYPES2, std::size_t INDEX,
               std::size_t... Is>
-    void copy_impl(const edm::view<edm::schema<VARTYPES1...>>& from,
-                   edm::view<edm::schema<VARTYPES2...>> to,
-                   type::copy_type cptype,
-                   std::index_sequence<INDEX, Is...>) const;
+    void copy_sizes_impl(const edm::view<edm::schema<VARTYPES1...>>& from,
+                         edm::view<edm::schema<VARTYPES2...>> to,
+                         type::copy_type cptype,
+                         std::index_sequence<INDEX, Is...>) const;
+    /// Implementation for the variadic @c copy function (for the payload)
+    template <typename... VARTYPES1, typename... VARTYPES2, std::size_t INDEX,
+              std::size_t... Is>
+    void copy_payload_impl(const edm::view<edm::schema<VARTYPES1...>>& from,
+                           edm::view<edm::schema<VARTYPES2...>> to,
+                           type::copy_type cptype,
+                           std::index_sequence<INDEX, Is...>) const;
 
 };  // class copy
 

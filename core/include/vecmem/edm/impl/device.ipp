@@ -24,15 +24,12 @@ template <typename... VARTYPES>
 VECMEM_HOST_AND_DEVICE device<schema<VARTYPES...>>::device(
     const view<schema_type>& view)
     : m_capacity(view.capacity()),
-      m_size(view.size_ptr()),
+      m_size(details::device_size_pointer<
+             schema_type,
+             vecmem::details::disjunction_v<type::details::is_jagged_vector<
+                 VARTYPES>...>>::get(view.size())),
       m_data{view.variables()} {
 
-    // The container cannot be resizable if there are jagged vectors in it. In
-    // such a case the jagged vectors themselves may be individually resizable,
-    // but not the entire container collectively.
-    assert(!((m_size != nullptr) &&
-             vecmem::details::disjunction<
-                 type::details::is_jagged_vector<VARTYPES>...>::value));
     // Check that all variables have the correct capacities.
     assert(details::device_capacities_match<VARTYPES...>(
         m_capacity, m_data, std::index_sequence_for<VARTYPES...>{}));

@@ -157,6 +157,39 @@ VECMEM_HOST_AND_DEVICE constexpr bool device_capacities_match(
                capacity, variables, std::index_sequence<INDICES...>{});
 }
 
+/// Helper trait for setting the @c m_size variable of a device object
+template <typename SCHEMA, bool HAS_JAGGED_VECTOR>
+struct device_size_pointer;
+
+/// Helper trait for setting the @c m_size variable of a device object
+/// (for a "jagged schema")
+template <typename SCHEMA>
+struct device_size_pointer<SCHEMA, true> {
+    VECMEM_HOST_AND_DEVICE static constexpr
+        typename device<SCHEMA>::size_pointer
+        get(const typename view<SCHEMA>::memory_view_type&) {
+
+        return nullptr;
+    }
+};
+
+/// Helper trait for setting the @c m_size variable of a device object
+/// (for a "non-jagged schema")
+template <typename SCHEMA>
+struct device_size_pointer<SCHEMA, false> {
+    VECMEM_HOST_AND_DEVICE static constexpr
+        typename device<SCHEMA>::size_pointer
+        get(const typename view<SCHEMA>::memory_view_type& view) {
+
+        // A sanity check.
+        assert((view.ptr() == nullptr) ||
+               (view.size() == sizeof(typename device<SCHEMA>::size_type)));
+        // Do a forceful conversion.
+        return reinterpret_cast<typename device<SCHEMA>::size_pointer>(
+            view.ptr());
+    }
+};
+
 }  // namespace details
 }  // namespace edm
 }  // namespace vecmem

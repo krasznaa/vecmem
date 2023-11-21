@@ -164,10 +164,6 @@ VECMEM_HOST void buffer<schema<VARTYPES...>>::setup_resizable(
     // containers that have some jagged vectors, versus ones that only have
     // 1D vectors.
     if constexpr (has_jagged_vectors) {
-        // Set the size of the array that the base class's size pointer will
-        // point to.
-        view_type::m_size_size = static_cast<size_type>(
-            (details::buffer_alloc<VARTYPES>::layout_size(capacities) + ...));
         // Perform the allocation.
         std::tie(m_memory, std::get<INDICES>(sizes_ptrs)...,
                  std::get<INDICES>(layout_ptrs)...,
@@ -180,24 +176,34 @@ VECMEM_HOST void buffer<schema<VARTYPES...>>::setup_resizable(
                 details::buffer_alloc<VARTYPES>::layout_size(capacities)...,
                 details::buffer_alloc<VARTYPES>::payload_size(capacities)...);
         // Point the base class at the size array.
-        view_type::m_size = details::find_size_pointer<VARTYPES...>(
-            sizes_ptrs, std::index_sequence_for<VARTYPES...>{});
+        view_type::m_size = {
+            static_cast<typename view_type::memory_view_type::size_type>(
+                (details::buffer_alloc<VARTYPES>::layout_size(capacities) +
+                 ...) *
+                sizeof(typename view_type::size_type)),
+            reinterpret_cast<typename view_type::memory_view_type::pointer>(
+                details::find_size_pointer<VARTYPES...>(
+                    sizes_ptrs, std::index_sequence_for<VARTYPES...>{}))};
     } else {
-        // Set the size of the array that the base class's size pointer will
-        // point to.
-        view_type::m_size_size = 1u;
         // Perform the allocation.
-        std::tie(m_memory, view_type::m_size, std::get<INDICES>(layout_ptrs)...,
+        typename view_type::size_pointer size = nullptr;
+        std::tie(m_memory, size, std::get<INDICES>(layout_ptrs)...,
                  std::get<INDICES>(payload_ptrs)...) =
             vecmem::details::aligned_multiple_placement<
                 typename view_type::size_type,
                 typename details::view_type<VARTYPES>::layout_type...,
                 typename details::view_type<VARTYPES>::payload_type...>(
-                mr, view_type::m_size_size,
+                mr, 1u,
                 details::buffer_alloc<VARTYPES>::layout_size(capacities)...,
                 details::buffer_alloc<VARTYPES>::payload_size(capacities)...);
+        // Point the base class at the size variable.
+        view_type::m_size = {
+            static_cast<typename view_type::memory_view_type::size_type>(
+                sizeof(typename view_type::size_type)),
+            reinterpret_cast<typename view_type::memory_view_type::pointer>(
+                size)};
         // Set all size pointers to point at the one allocated number.
-        ((std::get<INDICES>(sizes_ptrs) = view_type::m_size), ...);
+        ((std::get<INDICES>(sizes_ptrs) = size), ...);
     }
 
     // Set the base class's memory views.
@@ -222,6 +228,9 @@ VECMEM_HOST void buffer<schema<VARTYPES...>>::setup_resizable(
         view_type::m_host_layout = details::find_layout_view<VARTYPES...>(
             host_layout_ptrs,
             {details::buffer_alloc<VARTYPES>::layout_size(capacities)...});
+    } else {
+        // The layout is apparently host accessible.
+        view_type::m_host_layout = view_type::m_layout;
     }
 
     // Initialize the views from all the raw pointers.

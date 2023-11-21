@@ -123,7 +123,7 @@ TEST_F(core_edm_copy_test, device_to_fixed_device) {
     vecmem::testing::fill(device);
 
     // Create the target buffer.
-    test_edm::buffer target{input.size(), m_resource,
+    test_edm::buffer target{input.capacity(), m_resource,
                             vecmem::data::buffer_type::fixed_size};
     m_copy.setup(target);
 

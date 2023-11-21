@@ -9,15 +9,22 @@
 // Make Doxygen ignore the contents of this file.
 #ifndef VECMEM_DOXYGEN_IGNORE
 
+// Local include(s).
+#include "vecmem/edm/details/schema_traits.hpp"
+#include "vecmem/utils/type_traits.hpp"
+
+// System include(s).
+#include <cassert>
+
 namespace vecmem {
 namespace edm {
 
 template <typename... VARTYPES>
-VECMEM_HOST_AND_DEVICE view<schema<VARTYPES...>>::view(size_type capacity,
-                                                       size_pointer size)
+VECMEM_HOST_AND_DEVICE view<schema<VARTYPES...>>::view(
+    size_type capacity, const memory_view_type& size)
     : m_capacity(capacity),
-      m_size(size),
       m_views{},
+      m_size(size),
       m_payload(0, nullptr),
       m_layout(0, nullptr),
       m_host_layout(0, nullptr) {}
@@ -36,8 +43,8 @@ template <typename... OTHERTYPES,
 VECMEM_HOST_AND_DEVICE view<schema<VARTYPES...>>::view(
     const view<schema<OTHERTYPES...>>& other)
     : m_capacity(other.capacity()),
-      m_size(other.size_ptr()),
       m_views(other.variables()),
+      m_size(other.size()),
       m_payload(other.payload()),
       m_layout(other.layout()),
       m_host_layout(other.host_layout()) {}
@@ -61,21 +68,14 @@ VECMEM_HOST_AND_DEVICE auto view<schema<VARTYPES...>>::operator=(
 
     // Copy the data from the other view.
     m_capacity = rhs.capacity();
-    m_size = rhs.size_ptr();
     m_views = rhs.variables();
+    m_size = rhs.size();
     m_payload = rhs.payload();
     m_layout = rhs.layout();
     m_host_layout = rhs.host_layout();
 
     // Return a reference to this object.
     return *this;
-}
-
-template <typename... VARTYPES>
-VECMEM_HOST_AND_DEVICE auto view<schema<VARTYPES...>>::size() const
-    -> size_type {
-
-    return (m_size == nullptr ? m_capacity : *m_size);
 }
 
 template <typename... VARTYPES>
@@ -102,27 +102,6 @@ VECMEM_HOST_AND_DEVICE auto view<schema<VARTYPES...>>::get() const
 }
 
 template <typename... VARTYPES>
-VECMEM_HOST_AND_DEVICE auto view<schema<VARTYPES...>>::size_ptr()
-    -> size_pointer {
-
-    return m_size;
-}
-
-template <typename... VARTYPES>
-VECMEM_HOST_AND_DEVICE auto view<schema<VARTYPES...>>::size_ptr() const
-    -> const_size_pointer {
-
-    return m_size;
-}
-
-template <typename... VARTYPES>
-VECMEM_HOST_AND_DEVICE auto view<schema<VARTYPES...>>::size_ptr_size() const
-    -> size_type {
-
-    return m_size_size;
-}
-
-template <typename... VARTYPES>
 VECMEM_HOST_AND_DEVICE auto view<schema<VARTYPES...>>::variables()
     -> tuple_type& {
 
@@ -134,6 +113,13 @@ VECMEM_HOST_AND_DEVICE auto view<schema<VARTYPES...>>::variables() const
     -> const tuple_type& {
 
     return m_views;
+}
+
+template <typename... VARTYPES>
+VECMEM_HOST_AND_DEVICE auto view<schema<VARTYPES...>>::size() const
+    -> const memory_view_type& {
+
+    return m_size;
 }
 
 template <typename... VARTYPES>
