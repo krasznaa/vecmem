@@ -454,11 +454,11 @@ copy::event_type copy::operator()(
     // const-ness.
     static_assert(sizeof...(VARTYPES1) == sizeof...(VARTYPES2),
                   "Can only use compatible types in the copy");
-    static_assert(std::is_same<edm::schema<VARTYPES1...>,
-                               edm::schema<VARTYPES2...>>::value ||
-                      details::is_same_nc<edm::schema<VARTYPES1...>,
-                                          edm::schema<VARTYPES2...>>::value,
-                  "Can only use compatible types in the copy");
+    static_assert(
+        std::conjunction_v<std::is_same<VARTYPES1, VARTYPES2>...> ||
+            std::conjunction_v<
+                edm::type::details::is_same_nc<VARTYPES1, VARTYPES2>...>,
+        "Can only use compatible types in the copy");
 
     // First, handle the simple case, when both views have a contiguous memory
     // layout.
