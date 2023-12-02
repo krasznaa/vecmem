@@ -40,7 +40,8 @@ struct container {
 
 #if __cplusplus >= 201700L
     /// Host container type
-    using host = interface_type<vecmem::edm::host<schema_type> >;
+    using host =
+        interface_type<vecmem::edm::host<interface_type, schema_type> >;
 
     /// Data type
     using data = vecmem::edm::data<schema_type>;

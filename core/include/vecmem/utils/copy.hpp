@@ -167,9 +167,10 @@ public:
                           type::copy_type cptype = type::unknown) const;
 
     /// Copy from a view, into a host container
-    template <typename... VARTYPES1, typename... VARTYPES2>
+    template <template <typename> class INTERFACE, typename... VARTYPES1,
+              typename... VARTYPES2>
     event_type operator()(const edm::view<edm::schema<VARTYPES1...>>& from,
-                          edm::host<edm::schema<VARTYPES2...>>& to,
+                          edm::host<INTERFACE, edm::schema<VARTYPES2...>>& to,
                           type::copy_type cptype = type::unknown) const;
 
     /// Helper function for getting the size of a resizable container

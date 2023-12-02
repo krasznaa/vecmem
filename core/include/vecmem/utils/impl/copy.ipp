@@ -508,10 +508,11 @@ copy::event_type copy::operator()(
     return create_event();
 }
 
-template <typename... VARTYPES1, typename... VARTYPES2>
+template <template <typename> class INTERFACE, typename... VARTYPES1,
+          typename... VARTYPES2>
 copy::event_type copy::operator()(
     const edm::view<edm::schema<VARTYPES1...>>& from_view,
-    edm::host<edm::schema<VARTYPES2...>>& to_vec,
+    edm::host<INTERFACE, edm::schema<VARTYPES2...>>& to_vec,
     type::copy_type cptype) const {
 
     // The input and output types are allowed to be different, but only by

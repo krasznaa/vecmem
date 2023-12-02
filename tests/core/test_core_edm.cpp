@@ -261,6 +261,8 @@ TEST_F(core_edm_test, simple_host) {
     EXPECT_EQ(host1c.size(), 1u);
     check_container(host1c, 1u);
 
+    vecmem::testing::simple_container::host::element_type element1{host1, 0u};
+
     // Check that resizing the container works.
     host1.resize(5);
     EXPECT_EQ(host1.size(), 5u);

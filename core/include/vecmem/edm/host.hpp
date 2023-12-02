@@ -23,7 +23,7 @@ namespace vecmem {
 namespace edm {
 
 /// Technical base type for @c host<schema<VARTYPES...>>
-template <typename T>
+template <template <typename> class INTERFACE, typename T>
 class host;
 
 /// Structure-of-Arrays host container
@@ -34,8 +34,8 @@ class host;
 ///
 /// @tparam ...VARTYPES The variable types to store in the host container
 ///
-template <typename... VARTYPES>
-class host<schema<VARTYPES...>> {
+template <template <typename> class INTERFACE, typename... VARTYPES>
+class host<INTERFACE, schema<VARTYPES...>> {
 
 public:
     /// The schema describing the host's payload
@@ -113,9 +113,9 @@ private:
 /// @param resource The memory resource to use for any allocation(s)
 /// @return A (non-const) data object describing the host container
 ///
-template <typename... VARTYPES>
+template <template <typename> class INTERFACE, typename... VARTYPES>
 VECMEM_HOST edm::data<edm::schema<VARTYPES...>> get_data(
-    edm::host<edm::schema<VARTYPES...>>& host,
+    edm::host<INTERFACE, edm::schema<VARTYPES...>>& host,
     memory_resource* resource = nullptr);
 
 /// Helper function for getting a (const) data object for a host container
@@ -125,10 +125,10 @@ VECMEM_HOST edm::data<edm::schema<VARTYPES...>> get_data(
 /// @param resource The memory resource to use for any allocation(s)
 /// @return A (const) data object describing the host container
 ///
-template <typename... VARTYPES>
+template <template <typename> class INTERFACE, typename... VARTYPES>
 VECMEM_HOST edm::data<
     edm::schema<typename edm::type::details::add_const<VARTYPES>::type...>>
-get_data(const edm::host<edm::schema<VARTYPES...>>& host,
+get_data(const edm::host<INTERFACE, edm::schema<VARTYPES...>>& host,
          memory_resource* resource = nullptr);
 
 }  // namespace vecmem

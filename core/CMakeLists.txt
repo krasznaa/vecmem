@@ -69,6 +69,8 @@ vecmem_add_library( vecmem_core core
    "include/vecmem/edm/impl/data.ipp"
    "include/vecmem/edm/device.hpp"
    "include/vecmem/edm/impl/device.ipp"
+   "include/vecmem/edm/element.hpp"
+   "include/vecmem/edm/impl/element.ipp"
    "include/vecmem/edm/host.hpp"
    "include/vecmem/edm/impl/host.ipp"
    "include/vecmem/edm/view.hpp"
