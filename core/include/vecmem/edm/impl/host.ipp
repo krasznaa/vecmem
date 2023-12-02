@@ -118,19 +118,6 @@ VECMEM_HOST memory_resource& host<schema<VARTYPES...>>::resource() const {
 
 }  // namespace edm
 
-/// (Non-const) Overload of @c vecmem::get_data for scalar types
-///
-/// @tparam TYPE The scalar type to get the data for
-/// @param obj The (non-const) scalar object
-/// @return A simple (non-const) pointer to the scalar object
-///
-template <typename TYPE>
-VECMEM_HOST typename edm::details::view_type<edm::type::scalar<TYPE>>::type
-get_data(TYPE& obj) {
-
-    return &obj;
-}
-
 /// Helper function terminal node
 template <typename... VARTYPES>
 VECMEM_HOST void get_data_impl(edm::host<edm::schema<VARTYPES...>>&,
@@ -149,6 +136,10 @@ VECMEM_HOST void get_data_impl(edm::host<edm::schema<VARTYPES...>>& host,
                           I, std::tuple<VARTYPES...>>::type>::value) {
         std::get<I>(data.variables()) = get_data(host.template get<I>(), &mr);
         data.template get<I>() = get_data(std::get<I>(data.variables()));
+    } else if constexpr (edm::type::details::is_scalar<
+                             typename std::tuple_element<
+                                 I, std::tuple<VARTYPES...>>::type>::value) {
+        data.template get<I>() = &(host.template get<I>());
     } else {
         data.template get<I>() = get_data(host.template get<I>());
     }
@@ -178,20 +169,6 @@ VECMEM_HOST edm::data<edm::schema<VARTYPES...>> get_data(
     return result;
 }
 
-/// (Const) Overload of @c vecmem::get_data for scalar types
-///
-/// @tparam TYPE The scalar type to get the data for
-/// @param obj The (const) scalar object
-/// @return A simple (const) pointer to the scalar object
-///
-template <typename TYPE>
-VECMEM_HOST typename edm::details::view_type<
-    edm::type::scalar<typename std::add_const<TYPE>::type>>::type
-get_data(const TYPE& obj) {
-
-    return &obj;
-}
-
 /// Helper function terminal node
 template <typename... VARTYPES>
 VECMEM_HOST void get_data_impl(
@@ -214,6 +191,10 @@ VECMEM_HOST void get_data_impl(
                           I, std::tuple<VARTYPES...>>::type>::value) {
         std::get<I>(data.variables()) = get_data(host.template get<I>(), &mr);
         data.template get<I>() = get_data(std::get<I>(data.variables()));
+    } else if constexpr (edm::type::details::is_scalar<
+                             typename std::tuple_element<
+                                 I, std::tuple<VARTYPES...>>::type>::value) {
+        data.template get<I>() = &(host.template get<I>());
     } else {
         data.template get<I>() = get_data(host.template get<I>());
     }
