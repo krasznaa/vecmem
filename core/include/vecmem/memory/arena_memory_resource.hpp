@@ -1,7 +1,7 @@
 /*
  * VecMem project, part of the ACTS project (R&D line)
  *
- * (c) 2021-2023 CERN for the benefit of the ACTS project
+ * (c) 2021-2024 CERN for the benefit of the ACTS project
  *
  * Mozilla Public License Version 2.0
  */
@@ -24,7 +24,7 @@ class arena_memory_resource_impl;
 }
 
 /// Memory resource implementing an arena allocation scheme
-class arena_memory_resource final : public details::memory_resource_base {
+class VECMEM_CORE_EXPORT arena_memory_resource final : public details::memory_resource_base {
 
 public:
     /// Construct the memory resource on top of an upstream memory resource
@@ -35,21 +35,17 @@ public:
     ///                         @c upstream
     /// @param[in] maximum_size The maximal allowed allocation from @c upstream
     ///
-    VECMEM_CORE_EXPORT
     arena_memory_resource(memory_resource& upstream, std::size_t initial_size,
                           std::size_t maximum_size);
     /// Move constructor
-    VECMEM_CORE_EXPORT
     arena_memory_resource(arena_memory_resource&& parent);
     /// Disallow copying the memory resource
     arena_memory_resource(const arena_memory_resource&) = delete;
 
     /// Destructor
-    VECMEM_CORE_EXPORT
     ~arena_memory_resource();
 
     /// Move assignment operator
-    VECMEM_CORE_EXPORT
     arena_memory_resource& operator=(arena_memory_resource&& rhs);
     /// Disallow copying the memory resource
     arena_memory_resource& operator=(const arena_memory_resource&) = delete;
@@ -59,10 +55,8 @@ private:
     /// @{
 
     /// Allocate memory in the arena
-    VECMEM_CORE_EXPORT
     virtual void* do_allocate(std::size_t bytes, std::size_t) override final;
     /// De-allocate a previously allocated memory block
-    VECMEM_CORE_EXPORT
     virtual void do_deallocate(void* p, std::size_t bytes,
                                std::size_t) override final;
 

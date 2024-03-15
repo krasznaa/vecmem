@@ -1,7 +1,7 @@
 /*
  * VecMem project, part of the ACTS project (R&D line)
  *
- * (c) 2021-2023 CERN for the benefit of the ACTS project
+ * (c) 2021-2024 CERN for the benefit of the ACTS project
  *
  * Mozilla Public License Version 2.0
  */
@@ -39,7 +39,8 @@ class contiguous_memory_resource_impl;
  * amount of memory that can be allocated from the contiguous memory
  * resource.
  */
-class contiguous_memory_resource final : public details::memory_resource_base {
+class VECMEM_CORE_EXPORT contiguous_memory_resource final
+    : public details::memory_resource_base {
 
 public:
     /**
@@ -48,10 +49,8 @@ public:
      * @param[in] upstream The upstream memory resource to use.
      * @param[in] size The size of memory to allocate upstream.
      */
-    VECMEM_CORE_EXPORT
     contiguous_memory_resource(memory_resource& upstream, std::size_t size);
     /// Move constructor
-    VECMEM_CORE_EXPORT
     contiguous_memory_resource(contiguous_memory_resource&& parent);
     /// Disallow copying the memory resource
     contiguous_memory_resource(const contiguous_memory_resource&) = delete;
@@ -60,11 +59,9 @@ public:
      *
      * This method deallocates the arena memory on the upstream allocator.
      */
-    VECMEM_CORE_EXPORT
     ~contiguous_memory_resource();
 
     /// Move assignment operator
-    VECMEM_CORE_EXPORT
     contiguous_memory_resource& operator=(contiguous_memory_resource&& rhs);
     /// Disallow copying the memory resource
     contiguous_memory_resource& operator=(const contiguous_memory_resource&) =
@@ -75,10 +72,8 @@ private:
     /// @{
 
     /// Allocate memory with one of the underlying resources
-    VECMEM_CORE_EXPORT
     virtual void* do_allocate(std::size_t, std::size_t) override final;
     /// De-allocate a previously allocated memory block
-    VECMEM_CORE_EXPORT
     virtual void do_deallocate(void* p, std::size_t,
                                std::size_t) override final;
 
