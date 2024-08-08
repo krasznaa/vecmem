@@ -27,7 +27,7 @@ void *host_memory_resource::do_allocate(std::size_t bytes,
                                         std::size_t alignment) {
 
     if (bytes == 0) {
-        return nullptr;
+        throw std::bad_alloc{};
     }
 
 #ifdef VECMEM_HAVE_STD_ALIGNED_ALLOC
