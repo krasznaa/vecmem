@@ -36,14 +36,14 @@ template <device_address_space address>
 VECMEM_HOST void windows_device_atomic_ref<long, address>::store(
     value_type data, memory_order order) const {
 
-    __atomic_store_n(m_ptr, data, details::memorder_to_posix_builtin(order));
+    (void)InterlockedExchange(m_ptr, data);
 }
 
 template <device_address_space address>
 VECMEM_HOST auto windows_device_atomic_ref<long, address>::load(
     memory_order order) const -> value_type {
 
-    return __atomic_load_n(m_ptr, details::memorder_to_posix_builtin(order));
+    return InterlockedAdd(m_ptr, 0);
 }
 
 template <device_address_space address>
