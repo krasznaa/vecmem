@@ -343,15 +343,26 @@ struct proxy_data_creator<schema<VARTYPE>, PDOMAIN, proxy_access::constant,
                                                         const CONTAINER& c) {
         return make_impl<0>(i, c);
     }
+    /// Construct the tuple used by the proxy
+    template <typename OTHERPROXY>
+    VECMEM_HOST_AND_DEVICE static proxy_tuple_type make(const OTHERPROXY& p) {
+        return make_impl<0>(p);
+    }
 
 private:
     template <std::size_t INDEX, typename ITYPE, typename CONTAINER>
     VECMEM_HOST_AND_DEVICE static proxy_tuple_type make_impl(
         ITYPE i, const CONTAINER& c) {
 
-        return {proxy_var_type<
+        return proxy_tuple_type{proxy_var_type<
             VARTYPE, PDOMAIN, proxy_access::constant,
             proxy_type::reference>::make(i, c.template get<INDEX>())};
+    }
+    template <std::size_t INDEX, typename OTHERPROXY>
+    VECMEM_HOST_AND_DEVICE static proxy_tuple_type make_impl(
+        const OTHERPROXY& p) {
+
+        return proxy_tuple_type{p.template get<INDEX>()};
     }
 };
 
@@ -374,15 +385,54 @@ struct proxy_data_creator<schema<VARTYPE>, PDOMAIN, proxy_access::non_constant,
     VECMEM_HOST_AND_DEVICE static proxy_tuple_type make(ITYPE i, CONTAINER& c) {
         return make_impl<0>(i, c);
     }
+    /// Construct the tuple used by the proxy
+    template <typename OTHERPROXY>
+    VECMEM_HOST_AND_DEVICE static proxy_tuple_type make(OTHERPROXY& p) {
+        return make_impl<0>(p);
+    }
 
 private:
     template <std::size_t INDEX, typename ITYPE, typename CONTAINER>
     VECMEM_HOST_AND_DEVICE static proxy_tuple_type make_impl(ITYPE i,
                                                              CONTAINER& c) {
 
-        return {proxy_var_type<
+        return proxy_tuple_type{proxy_var_type<
             VARTYPE, PDOMAIN, proxy_access::non_constant,
             proxy_type::reference>::make(i, c.template get<INDEX>())};
+    }
+    template <std::size_t INDEX, typename OTHERPROXY>
+    VECMEM_HOST_AND_DEVICE static proxy_tuple_type make_impl(OTHERPROXY& p) {
+
+        return proxy_tuple_type{p.template get<INDEX>()};
+    }
+};
+
+/// Helper class making the data tuple for a device proxy
+template <typename VARTYPE, proxy_domain PDOMAIN, proxy_access PACCESS>
+struct proxy_data_creator<schema<VARTYPE>, PDOMAIN, PACCESS,
+                          proxy_type::standalone> {
+
+    /// Make all other instantiations of the struct friends
+    template <typename, proxy_domain, proxy_access, proxy_type>
+    friend struct proxy_data_creator;
+
+    /// Proxy tuple type created by the helper
+    using proxy_tuple_type =
+        tuple<typename proxy_var_type<VARTYPE, PDOMAIN, PACCESS,
+                                      proxy_type::standalone>::type>;
+
+    /// Construct the tuple used by the proxy
+    template <typename OTHERPROXY>
+    VECMEM_HOST_AND_DEVICE static proxy_tuple_type make(const OTHERPROXY& p) {
+        return make_impl<0>(p);
+    }
+
+private:
+    template <std::size_t INDEX, typename OTHERPROXY>
+    VECMEM_HOST_AND_DEVICE static proxy_tuple_type make_impl(
+        const OTHERPROXY& p) {
+
+        return proxy_tuple_type{p.template get<INDEX>()};
     }
 };
 
@@ -408,6 +458,11 @@ struct proxy_data_creator<schema<VARTYPE, VARTYPES...>, PDOMAIN,
                                                         const CONTAINER& c) {
         return make_impl<0>(i, c);
     }
+    /// Construct the tuple used by the proxy
+    template <typename OTHERPROXY>
+    VECMEM_HOST_AND_DEVICE static proxy_tuple_type make(const OTHERPROXY& p) {
+        return make_impl<0>(p);
+    }
 
 private:
     template <std::size_t INDEX, typename ITYPE, typename CONTAINER>
@@ -421,6 +476,16 @@ private:
             proxy_data_creator<
                 schema<VARTYPES...>, PDOMAIN, proxy_access::constant,
                 proxy_type::reference>::template make_impl<INDEX + 1>(i, c));
+    }
+    template <std::size_t INDEX, typename OTHERPROXY>
+    VECMEM_HOST_AND_DEVICE static proxy_tuple_type make_impl(
+        const OTHERPROXY& p) {
+
+        return proxy_tuple_type(
+            p.template get<INDEX>(),
+            proxy_data_creator<
+                schema<VARTYPES...>, PDOMAIN, proxy_access::constant,
+                proxy_type::reference>::template make_impl<INDEX + 1>(p));
     }
 };
 
@@ -445,6 +510,11 @@ struct proxy_data_creator<schema<VARTYPE, VARTYPES...>, PDOMAIN,
     VECMEM_HOST_AND_DEVICE static proxy_tuple_type make(ITYPE i, CONTAINER& c) {
         return make_impl<0>(i, c);
     }
+    /// Construct the tuple used by the proxy
+    template <typename OTHERPROXY>
+    VECMEM_HOST_AND_DEVICE static proxy_tuple_type make(OTHERPROXY& p) {
+        return make_impl<0>(p);
+    }
 
 private:
     template <std::size_t INDEX, typename ITYPE, typename CONTAINER>
@@ -459,6 +529,51 @@ private:
                 schema<VARTYPES...>, PDOMAIN, proxy_access::non_constant,
                 proxy_type::reference>::template make_impl<INDEX + 1>(i, c));
     }
+    template <std::size_t INDEX, typename OTHERPROXY>
+    VECMEM_HOST_AND_DEVICE static proxy_tuple_type make_impl(OTHERPROXY& p) {
+
+        return proxy_tuple_type(
+            p.template get<INDEX>(),
+            proxy_data_creator<
+                schema<VARTYPES...>, PDOMAIN, proxy_access::constant,
+                proxy_type::reference>::template make_impl<INDEX + 1>(p));
+    }
+};
+
+/// Helper class making the data tuple for a constant device proxy
+template <typename VARTYPE, typename... VARTYPES, proxy_domain PDOMAIN,
+          proxy_access PACCESS>
+struct proxy_data_creator<schema<VARTYPE, VARTYPES...>, PDOMAIN, PACCESS,
+                          proxy_type::standalone> {
+
+    /// Make all other instantiations of the struct friends
+    template <typename, proxy_domain, proxy_access, proxy_type>
+    friend struct proxy_data_creator;
+
+    /// Proxy tuple type created by the helper
+    using proxy_tuple_type =
+        tuple<typename proxy_var_type<VARTYPE, PDOMAIN, PACCESS,
+                                      proxy_type::standalone>::type,
+              typename proxy_var_type<VARTYPES, PDOMAIN, PACCESS,
+                                      proxy_type::standalone>::type...>;
+
+    /// Construct the tuple used by the proxy
+    template <typename OTHERPROXY>
+    VECMEM_HOST_AND_DEVICE static proxy_tuple_type make(const OTHERPROXY& p) {
+        return make_impl<0>(p);
+    }
+
+private:
+    template <std::size_t INDEX, typename OTHERPROXY>
+    VECMEM_HOST_AND_DEVICE static proxy_tuple_type make_impl(
+        const OTHERPROXY& p) {
+
+        return proxy_tuple_type(
+            p.template get<INDEX>(),
+            proxy_data_creator<
+                schema<VARTYPES...>, PDOMAIN, proxy_access::constant,
+                proxy_type::reference>::template make_impl<INDEX + 1>(p));
+    }
 };
 
 /// @}
@@ -466,29 +581,36 @@ private:
 /// @name Code for copying the proxy tuples
 /// @{
 
-/// Copy a tuple that has just a single element
+/// Copy between single-element tuples
 ///
-/// @tparam T The type of that single element
+/// @tparam T1 The type of the receiving element
+/// @tparam T2 The type of the source element
 ///
 /// @param dst Destination tuple to copy into
 /// @param src Source tuple to copy from
 ///
-template <typename T>
-void proxy_tuple_copy(tuple<T>& dst, const tuple<T>& src) {
+template <typename T1, typename T2>
+VECMEM_HOST_AND_DEVICE void proxy_tuple_copy(tuple<T1>& dst,
+                                             const tuple<T2>& src) {
     dst.m_head = src.m_head;
 }
 
 /// Copy a tuple that has more than one element
 ///
-/// @tparam T The type of the first element
-/// @tparam Ts The types of the rest of the elements
+/// @tparam T1 The type of the first receiving element
+/// @tparam T1s The types of the rest of the receiving elements
+/// @tparam T2 The type of the first source element
+/// @tparam T2s The types of the rest of the source elements
 ///
 /// @param dst Destination tuple to copy into
 /// @param src Source tuple to copy from
 ///
-template <typename T, typename... Ts,
-          std::enable_if_t<(sizeof...(Ts) > 0), bool> = true>
-void proxy_tuple_copy(tuple<T, Ts...>& dst, const tuple<T, Ts...>& src) {
+template <typename T1, typename T2, typename... T1s, typename... T2s,
+          std::enable_if_t<((sizeof...(T1s) > 0) &&
+                            (sizeof...(T1s) == sizeof...(T2s))),
+                           bool> = true>
+VECMEM_HOST_AND_DEVICE void proxy_tuple_copy(tuple<T1, T1s...>& dst,
+                                             const tuple<T2, T2s...>& src) {
     dst.m_head = src.m_head;
     proxy_tuple_copy(dst.m_tail, src.m_tail);
 }

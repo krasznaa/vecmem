@@ -42,7 +42,8 @@ template <typename... OVARTYPES, details::proxy_domain OPDOMAIN,
 VECMEM_HOST_AND_DEVICE
 proxy<schema<VARTYPES...>, PDOMAIN, PACCESS, PTYPE>::proxy(
     const proxy<schema<OVARTYPES...>, OPDOMAIN, OPACCESS, OPTYPE>& other)
-    : m_data(other.variables()) {}
+    : m_data(details::proxy_data_creator<schema<VARTYPES...>, PDOMAIN, PACCESS,
+                                         PTYPE>::make(other)) {}
 
 template <typename... VARTYPES, details::proxy_domain PDOMAIN,
           details::proxy_access PACCESS, details::proxy_type PTYPE>
@@ -72,7 +73,7 @@ VECMEM_HOST_AND_DEVICE proxy<schema<VARTYPES...>, PDOMAIN, PACCESS, PTYPE>&
 proxy<schema<VARTYPES...>, PDOMAIN, PACCESS, PTYPE>::operator=(
     const proxy<schema<OVARTYPES...>, OPDOMAIN, OPACCESS, OPTYPE>& other) {
 
-    m_data = other.variables();
+    details::proxy_tuple_copy(m_data, other.variables());
     return *this;
 }
 

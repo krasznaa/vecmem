@@ -1,6 +1,6 @@
 # VecMem project, part of the ACTS project (R&D line)
 #
-# (c) 2021-2024 CERN for the benefit of the ACTS project
+# (c) 2021-2025 CERN for the benefit of the ACTS project
 #
 # Mozilla Public License Version 2.0
 
@@ -29,6 +29,7 @@ vecmem_add_test( core
    "test_core_edm_buffer.cpp"
    "test_core_edm_device.cpp"
    "test_core_edm_host.cpp"
+   "test_core_edm_proxy.cpp"
    "test_core_edm_view.cpp"
    LINK_LIBRARIES vecmem::core GTest::gtest_main vecmem_testing_common )
 
