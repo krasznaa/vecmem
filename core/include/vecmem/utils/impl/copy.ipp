@@ -119,23 +119,37 @@ copy::event_type copy::operator()(
 
 template <typename TYPE>
 typename data::vector_view<TYPE>::size_type copy::get_size(
-    const data::vector_view<TYPE>& data) const {
+    const data::vector_view<TYPE>& data, memory_resource* pinnedHostMr) const {
 
     // Handle the simple case, when the view/buffer is not resizable.
     if (data.size_ptr() == nullptr) {
         return data.capacity();
     }
 
-    // If it *is* resizable, don't assume that the size is host-accessible.
-    // Explicitly copy it for access.
-    typename data::vector_view<TYPE>::size_type result = 0;
-    do_copy(sizeof(typename data::vector_view<TYPE>::size_type),
-            data.size_ptr(), &result, type::unknown);
+    // Helper result type.
+    using result_type = typename data::vector_view<TYPE>::size_type;
 
-    // Wait for the copy operation to finish. With some backends
-    // (khm... SYCL... khm...) copies can be asynchronous even into
-    // non-pinned host memory.
-    create_event()->wait();
+    // The result variable.
+    result_type result = 0;
+
+    // Behave differently if the user provided a pinned host memory resource.
+    if (pinnedHostMr != nullptr) {
+        // Allocate temporary memory to hold the size.
+        auto temp_size = make_unique_alloc<result_type>(*pinnedHostMr);
+        do_copy(sizeof(result_type), data.size_ptr(), temp_size.get(),
+                type::unknown);
+        // Wait for the (possubly asynchronous) copy to finish.
+        create_event()->wait();
+        // Copy the result on the stack.
+        result = *temp_size;
+    } else {
+        // No pinned host memory resource provided, do the copy directly into
+        // a stack variable.
+        do_copy(sizeof(result_type), data.size_ptr(), &result, type::unknown);
+        // Wait for the copy to finish. As even copies going into stack memory
+        // may be asynchronous.
+        create_event()->wait();
+    }
 
     // Return what we got.
     return result;
@@ -280,10 +294,11 @@ copy::event_type copy::operator()(
 
 template <typename TYPE>
 std::vector<typename data::vector_view<TYPE>::size_type> copy::get_sizes(
-    const data::jagged_vector_view<TYPE>& data) const {
+    const data::jagged_vector_view<TYPE>& data,
+    memory_resource* pinnedHostMr) const {
 
     // Perform the operation using the private function.
-    return get_sizes_impl(data.host_ptr(), data.size());
+    return get_sizes_impl(data.host_ptr(), data.size(), pinnedHostMr);
 }
 
 template <typename TYPE>
@@ -498,11 +513,14 @@ copy::event_type copy::operator()(
 
 template <typename... VARTYPES>
 typename edm::view<edm::schema<VARTYPES...>>::size_type copy::get_size(
-    const edm::view<edm::schema<VARTYPES...>>& data) const {
+    const edm::view<edm::schema<VARTYPES...>>& data,
+    memory_resource* pinnedHostMr) const {
+
+    // Helper result type.
+    using result_type = typename edm::view<edm::schema<VARTYPES...>>::size_type;
 
     // Start by taking the capacity of the container.
-    typename edm::view<edm::schema<VARTYPES...>>::size_type size =
-        data.capacity();
+    result_type size = data.capacity();
 
     // If there are jagged vectors in the container and/or the container is not
     // resizable, we're done. It is done in two separate if statements to avoid
@@ -518,17 +536,29 @@ typename edm::view<edm::schema<VARTYPES...>>::size_type copy::get_size(
         }
 
         // A small security check.
-        assert(data.size().size() ==
-               sizeof(typename edm::view<edm::schema<VARTYPES...>>::size_type));
+        assert(data.size().size() == sizeof(result_type));
 
-        // Get the exact size of the container.
-        do_copy(sizeof(typename edm::view<edm::schema<VARTYPES...>>::size_type),
-                data.size().ptr(), &size, type::unknown);
-        // We have to wait for this to finish, since the "size" variable is
-        // not going to be available outside of this function. And
-        // asynchronous SYCL memory copies can happen from variables on the
-        // stack as well...
-        create_event()->wait();
+        // Check if a pinned host memory resource was provided.
+        if (pinnedHostMr != nullptr) {
+            // Allocate a temporary buffer in pinned host memory, and make
+            // a copy into it.
+            auto temp_size = make_unique_alloc<result_type>(*pinnedHostMr);
+            do_copy(sizeof(result_type), data.size().ptr(), temp_size.get(),
+                    type::unknown);
+            // Wait for the (possibly asynchronous) copy to finish.
+            create_event()->wait();
+            // Copy the result on the stack.
+            size = *temp_size;
+        } else {
+            // Get the exact size of the container.
+            do_copy(sizeof(result_type), data.size().ptr(), &size,
+                    type::unknown);
+            // We have to wait for this to finish, since the "size" variable is
+            // not going to be available outside of this function. And
+            // asynchronous SYCL memory copies can happen from variables on the
+            // stack as well...
+            create_event()->wait();
+        }
 
         // Return what we got.
         return size;
@@ -537,7 +567,8 @@ typename edm::view<edm::schema<VARTYPES...>>::size_type copy::get_size(
 
 template <typename... VARTYPES>
 std::vector<data::vector_view<int>::size_type> copy::get_sizes(
-    const edm::view<edm::schema<VARTYPES...>>& data) const {
+    const edm::view<edm::schema<VARTYPES...>>& data,
+    memory_resource* pinnedHostMr) const {
 
     // Make sure that there's a jagged vector in here.
     static_assert(
@@ -545,7 +576,7 @@ std::vector<data::vector_view<int>::size_type> copy::get_sizes(
         "Function can only be used on containers with jagged vectors");
 
     // Get the sizes using the helper function.
-    return get_sizes_impl<0>(data);
+    return get_sizes_impl<0>(data, pinnedHostMr);
 }
 
 template <typename TYPE>
@@ -756,24 +787,41 @@ void copy::copy_views_contiguous_impl(
 
 template <typename TYPE>
 std::vector<typename data::vector_view<TYPE>::size_type> copy::get_sizes_impl(
-    const data::vector_view<TYPE>* data, std::size_t size) const {
+    const data::vector_view<TYPE>* data, std::size_t size,
+    memory_resource* pinnedHostMr) const {
+
+    // Helper type.
+    using size_type = typename data::vector_view<TYPE>::size_type;
 
     // Create the result vector.
-    std::vector<typename data::vector_view<TYPE>::size_type> result(size, 0);
+    std::vector<size_type> result(size, 0);
 
     // Try to get the "resizable sizes" first.
     for (std::size_t i = 0; i < size; ++i) {
         // Find the first "inner vector" that has a non-zero capacity, and is
         // resizable.
         if ((data[i].capacity() != 0) && (data[i].size_ptr() != nullptr)) {
-            // Copy the sizes of the inner vectors into the result vector.
-            do_copy(sizeof(typename data::vector_view<TYPE>::size_type) *
-                        (size - i),
-                    data[i].size_ptr(), result.data() + i, type::unknown);
-            // Wait for the copy operation to finish. With some backends
-            // (khm... SYCL... khm...) copies can be asynchronous even into
-            // non-pinned host memory.
-            create_event()->wait();
+            // Check if a pinned host memory resource was provided.
+            if (pinnedHostMr != nullptr) {
+                // Allocate a temporary buffer in pinned host memory, and make
+                // a copy into it.
+                vecmem::vector<size_type> temp_sizes(size, pinnedHostMr);
+                do_copy(sizeof(size_type) * (size - i), data[i].size_ptr(),
+                        temp_sizes.data() + i, type::unknown);
+                // Wait for the (possibly asynchronous) copy to finish.
+                create_event()->wait();
+                // Copy the payload of the temporary vector into the result
+                // vector.
+                std::copy(temp_sizes.begin(), temp_sizes.end(), result.begin());
+            } else {
+                // Copy the sizes of the inner vectors into the result vector.
+                do_copy(sizeof(size_type) * (size - i), data[i].size_ptr(),
+                        result.data() + i, type::unknown);
+                // Wait for the copy operation to finish. With some backends
+                // (khm... SYCL... khm...) copies can be asynchronous even into
+                // non-pinned host memory.
+                create_event()->wait();
+            }
             // At this point the result vector should have been set up
             // correctly.
             return result;
@@ -991,7 +1039,8 @@ void copy::copy_payload_impl(
 
 template <std::size_t INDEX, typename... VARTYPES>
 std::vector<data::vector_view<int>::size_type> copy::get_sizes_impl(
-    const edm::view<edm::schema<VARTYPES...>>& view) const {
+    const edm::view<edm::schema<VARTYPES...>>& view,
+    memory_resource* pinnedHostMr) const {
 
     // Make sure that there's a jagged vector in here.
     static_assert(
@@ -1003,11 +1052,11 @@ std::vector<data::vector_view<int>::size_type> copy::get_sizes_impl(
                       typename std::tuple_element<
                           INDEX, std::tuple<VARTYPES...>>::type>::value) {
         // If it is, get its (inner) sizes.
-        return get_sizes(view.template get<INDEX>());
+        return get_sizes(view.template get<INDEX>(), pinnedHostMr);
     } else if constexpr (sizeof...(VARTYPES) > (INDEX + 1)) {
         // If it's not, and this was not the last variable, recurse into the
         // next variable.
-        return get_sizes_impl<INDEX + 1>(view);
+        return get_sizes_impl<INDEX + 1>(view, pinnedHostMr);
     }
 
     // We should never get here as long as the code was written correctly.

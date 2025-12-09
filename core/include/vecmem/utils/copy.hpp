@@ -107,7 +107,8 @@ public:
     /// Helper function for getting the size of a resizable 1D buffer
     template <typename TYPE>
     typename data::vector_view<TYPE>::size_type get_size(
-        const data::vector_view<TYPE>& data) const;
+        const data::vector_view<TYPE>& data,
+        memory_resource* pinnedHostMr = nullptr) const;
 
     /// @}
 
@@ -148,7 +149,8 @@ public:
     /// Helper function for getting the sizes of a resizable jagged vector
     template <typename TYPE>
     std::vector<typename data::vector_view<TYPE>::size_type> get_sizes(
-        const data::jagged_vector_view<TYPE>& data) const;
+        const data::jagged_vector_view<TYPE>& data,
+        memory_resource* pinnedHostMr = nullptr) const;
 
     /// Helper function for setting the sizes of a resizable jagged vector
     template <typename TYPE>
@@ -197,12 +199,14 @@ public:
     /// Get the (outer) size of a (resizable) SoA container
     template <typename... VARTYPES>
     typename edm::view<edm::schema<VARTYPES...>>::size_type get_size(
-        const edm::view<edm::schema<VARTYPES...>>& data) const;
+        const edm::view<edm::schema<VARTYPES...>>& data,
+        memory_resource* pinnedHostMr = nullptr) const;
 
     /// Get the (inner) size of a (resizable) SoA container
     template <typename... VARTYPES>
     std::vector<data::vector_view<int>::size_type> get_sizes(
-        const edm::view<edm::schema<VARTYPES...>>& data) const;
+        const edm::view<edm::schema<VARTYPES...>>& data,
+        memory_resource* pinnedHostMr = nullptr) const;
 
     /// @}
 
@@ -241,7 +245,8 @@ private:
     /// Helper function for getting the sizes of a jagged vector/buffer
     template <typename TYPE>
     std::vector<typename data::vector_view<TYPE>::size_type> get_sizes_impl(
-        const data::vector_view<TYPE>* data, std::size_t size) const;
+        const data::vector_view<TYPE>* data, std::size_t size,
+        memory_resource* pinnedHostMr) const;
     /// Check if a vector of views occupy a contiguous block of memory
     template <typename TYPE>
     static bool is_contiguous(const data::vector_view<TYPE>* data,
@@ -272,7 +277,8 @@ private:
     /// Implementation for the variadic @c get_sizes function
     template <std::size_t INDEX, typename... VARTYPES>
     std::vector<data::vector_view<int>::size_type> get_sizes_impl(
-        const edm::view<edm::schema<VARTYPES...>>& from) const;
+        const edm::view<edm::schema<VARTYPES...>>& from,
+        memory_resource* pinnedHostMr) const;
 
 };  // class copy
 
