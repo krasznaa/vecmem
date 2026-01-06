@@ -1,6 +1,6 @@
 # VecMem project, part of the ACTS project (R&D line)
 #
-# (c) 2021-2025 CERN for the benefit of the ACTS project
+# (c) 2021-2026 CERN for the benefit of the ACTS project
 #
 # Mozilla Public License Version 2.0
 
@@ -50,6 +50,7 @@ vecmem_add_library( vecmem_core core
    # Memory management.
    "include/vecmem/memory/atomic.hpp"
    "include/vecmem/memory/impl/atomic.ipp"
+   "include/vecmem/memory/get_default_resource.hpp"
    "include/vecmem/memory/polymorphic_allocator.hpp"
    "include/vecmem/memory/memory_resource.hpp"
    "include/vecmem/memory/details/unique_alloc_deleter.hpp"
@@ -155,6 +156,11 @@ vecmem_add_library( vecmem_core core
    "src/memory/synchronized_memory_resource.cpp"
    "include/vecmem/memory/synchronized_memory_resource.hpp"
    # Utilities.
+   "include/vecmem/utils/abstract_event.hpp"
+   "include/vecmem/utils/async_size.hpp"
+   "include/vecmem/utils/impl/async_size.ipp"
+   "include/vecmem/utils/async_sizes.hpp"
+   "include/vecmem/utils/impl/async_sizes.ipp"
    "include/vecmem/utils/copy.hpp"
    "include/vecmem/utils/impl/copy.ipp"
    "src/utils/copy.cpp"
