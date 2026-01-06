@@ -1,6 +1,6 @@
 /* VecMem project, part of the ACTS project (R&D line)
  *
- * (c) 2021-2025 CERN for the benefit of the ACTS project
+ * (c) 2021-2026 CERN for the benefit of the ACTS project
  *
  * Mozilla Public License Version 2.0
  */
@@ -26,7 +26,8 @@ struct queue_wrapper::impl {
 
 queue_wrapper::queue_wrapper() : m_impl{std::make_unique<impl>()} {
 
-    m_impl->m_managedQueue = std::make_shared<::sycl::queue>();
+    ::sycl::property_list queue_properties{::sycl::property::queue::in_order{}};
+    m_impl->m_managedQueue = std::make_shared<::sycl::queue>(queue_properties);
     m_impl->m_queue = m_impl->m_managedQueue.get();
     VECMEM_DEBUG_MSG(1,
                      "Created an \"owning wrapper\" around a queue on "
