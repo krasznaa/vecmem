@@ -40,12 +40,17 @@ TEST_P(soa_copy_tests_hybrid_jagged, host_to_resizable_device_to_host) {
     // Fill it with some (uneven) data.
     constexpr bool UNEVEN = true;
     vecmem::testing::fill(input, UNEVEN);
+    const std::vector<unsigned int> capacities =
+        vecmem::edm::get_capacities(vecmem::get_data(input));
+    static const std::vector<unsigned int> EXPECTED_CAPACITIES = {
+        7, 6, 9, 8, 11, 10, 13, 12, 15, 14};
+    EXPECT_EQ(capacities, EXPECTED_CAPACITIES);
 
     // Create a resizable device buffer that would be able to hold this
     // data.
     vecmem::testing::jagged_soa_container::buffer device_buffer{
-        vecmem::edm::get_capacities(vecmem::get_data(input)), main_mr(),
-        &(host_mr()), vecmem::data::buffer_type::resizable};
+        capacities, main_mr(), &(host_mr()),
+        vecmem::data::buffer_type::resizable};
     main_copy().setup(device_buffer)->wait();
 
     // Copy the data to the device.
